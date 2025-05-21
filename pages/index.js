@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../src/supabaseClient'
 
 export default function Home() {
+  const today = new Date().toISOString().split('T')[0]
+
+  const [fromDate, setFromDate] = useState(today)
+  const [toDate, setToDate] = useState(today)
   const [data, setData] = useState([])
-  const [dateFilter, setDateFilter] = useState(() => new Date().toISOString().split('T')[0]) // текущая дата
-  const [wagonFilter, setWagonFilter] = useState('')
 
   useEffect(() => {
     fetchData()
-  }, [dateFilter, wagonFilter])
+  }, [fromDate, toDate])
 
   async function fetchData() {
     let query = supabase
@@ -16,18 +18,21 @@ export default function Home() {
       .select('Номер вагона, Вес груза, date_only')
       .order('date_only', { ascending: false })
 
-    if (dateFilter) {
-      query = query.eq('date_only', dateFilter)
+    if (fromDate) {
+      query = query.gte('date_only', fromDate)
     }
 
-    if (wagonFilter) {
-      query = query.ilike('Номер вагона', `%${wagonFilter}%`)
+    if (toDate) {
+      query = query.lte('date_only', toDate)
     }
 
     const { data, error } = await query
 
-    if (error) console.error('Ошибка загрузки:', error)
-    else setData(data)
+    if (error) {
+      console.error('Ошибка загрузки:', error)
+    } else {
+      setData(data)
+    }
   }
 
   return (
@@ -36,21 +41,20 @@ export default function Home() {
 
       <div style={{ marginBottom: '1rem' }}>
         <label style={{ marginRight: '1rem' }}>
-          📆 Дата:
+          📆 От:
           <input
             type="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
             style={{ marginLeft: '0.5rem' }}
           />
         </label>
         <label>
-          🚃 Номер вагона:
+          До:
           <input
-            type="text"
-            placeholder="например: 9301"
-            value={wagonFilter}
-            onChange={(e) => setWagonFilter(e.target.value)}
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
             style={{ marginLeft: '0.5rem' }}
           />
         </label>

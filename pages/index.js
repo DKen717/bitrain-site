@@ -8,20 +8,19 @@ export default function Home() {
     fetchData()
   }, [])
 
-  async function fetchData() {
-    const { data, error } = await supabase
-      .from('Dislocation_daily2')
-      .select('Номер вагона, Вес груза, date_only')
-      .order('date_only', { ascending: false })
-      .limit(5)
+async function fetchData() {
+  const { data, error } = await supabase
+    .from('Dislocation_daily2')
+    .select('*') // получаем ВСЁ для отладки
+    .limit(5)
 
-    if (error) {
-      console.error('❌ Ошибка загрузки:', error)
-    } else {
-      console.log('✅ Загружено строк:', data.length)
-      setData(data)
-    }
+  if (error) {
+    console.error('❌ Supabase error:', error.message)
+  } else {
+    console.log('✅ Данные получены:', data)
+    setData(data)
   }
+}
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>

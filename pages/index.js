@@ -11,7 +11,7 @@ export default function Home() {
   async function fetchData() {
     const { data, error } = await supabase
       .from('Dislocation_daily2')
-      .select('Номер вагона, Дата совершения операции, date_only')
+      .select('"Номер вагона", "Дата совершения операции", date_only')
       .order('date_only', { ascending: false })
       .limit(5)
 

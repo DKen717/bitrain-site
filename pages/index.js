@@ -7,11 +7,14 @@ export default function Home() {
   const [toDate, setToDate] = useState('')
   const [wagonNumbers, setWagonNumbers] = useState('')
   const [page, setPage] = useState(1)
+  const [trigger, setTrigger] = useState(0)
+  const [total, setTotal] = useState(0)
+
   const pageSize = 20
 
   useEffect(() => {
     fetchData()
-  }, [fromDate, toDate, wagonNumbers, page])
+  }, [trigger, page])
 
   async function fetchData() {
     const from = (page - 1) * pageSize
@@ -37,12 +40,13 @@ export default function Home() {
       query = query.in('Номер вагона', numbers)
     }
 
-    const { data, error } = await query
+    const { data, count, error } = await query
 
     if (error) {
       console.error('❌ Ошибка загрузки:', error.message)
     } else {
       setData(data)
+      setTotal(count || 0)
     }
   }
 
@@ -51,6 +55,13 @@ export default function Home() {
     setToDate('')
     setWagonNumbers('')
     setPage(1)
+    setData([])
+    setTotal(0)
+  }
+
+  function triggerSearch() {
+    setPage(1)
+    setTrigger((prev) => prev + 1)
   }
 
   return (
@@ -63,10 +74,7 @@ export default function Home() {
           <input
             type="date"
             value={fromDate}
-            onChange={(e) => {
-              setPage(1)
-              setFromDate(e.target.value)
-            }}
+            onChange={(e) => setFromDate(e.target.value)}
             style={{ marginLeft: '0.5rem' }}
           />
         </label>
@@ -76,10 +84,7 @@ export default function Home() {
           <input
             type="date"
             value={toDate}
-            onChange={(e) => {
-              setPage(1)
-              setToDate(e.target.value)
-            }}
+            onChange={(e) => setToDate(e.target.value)}
             style={{ marginLeft: '0.5rem' }}
           />
         </label>
@@ -88,22 +93,21 @@ export default function Home() {
           🚃 Номер вагона(ов):
           <input
             type="text"
-            placeholder="через запятую"
+            placeholder="например: 9301, 9714"
             value={wagonNumbers}
-            onChange={(e) => {
-              setPage(1)
-              setWagonNumbers(e.target.value)
-            }}
+            onChange={(e) => setWagonNumbers(e.target.value)}
             style={{ marginLeft: '0.5rem', width: '200px' }}
           />
         </label>
 
-        <button onClick={clearFilters} style={{ marginLeft: '1rem' }}>🧹 Очистить фильтр</button>
+        <button onClick={triggerSearch} style={{ marginLeft: '1rem' }}>🔍 Найти</button>
+        <button onClick={clearFilters} style={{ marginLeft: '0.5rem' }}>🧹 Очистить</button>
       </div>
 
       <table border="1" cellPadding="8" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead style={{ backgroundColor: '#f0f0f0' }}>
           <tr>
+            <th>№</th>
             <th>Дата (date_only)</th>
             <th>Номер вагона</th>
             <th>Дата операции</th>
@@ -112,11 +116,12 @@ export default function Home() {
         <tbody>
           {data.length === 0 ? (
             <tr>
-              <td colSpan="3" style={{ textAlign: 'center' }}>Нет данных</td>
+              <td colSpan="4" style={{ textAlign: 'center' }}>Нет данных</td>
             </tr>
           ) : (
             data.map((row, idx) => (
               <tr key={idx}>
+                <td>{(page - 1) * pageSize + idx + 1}</td>
                 <td>{row.date_only}</td>
                 <td>{row['Номер вагона']}</td>
                 <td>{row['Дата совершения операции']}</td>
@@ -126,14 +131,17 @@ export default function Home() {
         </tbody>
       </table>
 
-      <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-        <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-          ⬅ Предыдущая
-        </button>
-        <span style={{ margin: '0 1rem' }}>Страница {page}</span>
-        <button onClick={() => setPage((p) => p + 1)}>
-          Следующая ➡
-        </button>
+      <div style={{ marginTop: '1rem', fontSize: '0.9rem', textAlign: 'center' }}>
+        <p>Показано: {data.length} строк из {total}</p>
+        <div style={{ marginTop: '0.5rem' }}>
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+            ⬅ Предыдущая
+          </button>
+          <span style={{ margin: '0 1rem' }}>Страница {page}</span>
+          <button onClick={() => setPage((p) => p + 1)} disabled={data.length < pageSize}>
+            Следующая ➡
+          </button>
+        </div>
       </div>
     </div>
   )

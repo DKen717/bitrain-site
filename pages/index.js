@@ -17,7 +17,7 @@ export default function Home() {
 
   async function fetchData() {
     let query = supabase
-      .from('Dislocation_daily2')
+      .from("Dislocation_daily2")
       .select('Номер вагона, Вес груза, date_only')
       .order('date_only', { ascending: false })
       .limit(100)

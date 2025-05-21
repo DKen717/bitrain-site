@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../src/supabaseClient'
 
 export default function Home() {
+  // Правильное определение текущей даты с учётом часового пояса
   const localToday = new Date()
   localToday.setMinutes(localToday.getMinutes() - localToday.getTimezoneOffset())
   const today = localToday.toISOString().split('T')[0]
@@ -12,17 +13,20 @@ export default function Home() {
   const [filterMode, setFilterMode] = useState('today') // "today" | "all" | "custom"
 
   useEffect(() => {
+    console.log('📆 today:', today)
     fetchData()
   }, [fromDate, toDate, filterMode])
 
   async function fetchData() {
     let query = supabase
-      .from("Dislocation_daily2")
+      .from('Dislocation_daily2')
       .select('Номер вагона, Вес груза, date_only')
       .order('date_only', { ascending: false })
       .limit(100)
 
+    // Применяем фильтр
     if (filterMode === 'today') {
+      console.log('📌 Фильтрация по today =', today)
       query = query.eq('date_only', today)
     } else if (filterMode === 'custom') {
       if (fromDate) query = query.gte('date_only', fromDate)
@@ -32,8 +36,9 @@ export default function Home() {
     const { data, error } = await query
 
     if (error) {
-      console.error('Ошибка загрузки:', error)
+      console.error('❌ Ошибка загрузки:', error)
     } else {
+      console.log('✅ Получено строк:', data.length)
       setData(data)
     }
   }
@@ -43,10 +48,17 @@ export default function Home() {
       <h1>Aiway Logistic — данные вагонов</h1>
 
       <div style={{ marginBottom: '1rem' }}>
-        <button onClick={() => { setFilterMode('today'); setFromDate(today); setToDate(today) }} style={{ marginRight: '1rem' }}>
+        <button
+          onClick={() => {
+            setFilterMode('today')
+            setFromDate(today)
+            setToDate(today)
+          }}
+          style={{ marginRight: '1rem' }}
+        >
           📅 Сегодня
         </button>
-        <button onClick={() => { setFilterMode('all') }} style={{ marginRight: '1rem' }}>
+        <button onClick={() => setFilterMode('all')} style={{ marginRight: '1rem' }}>
           📋 Показать все
         </button>
       </div>
@@ -57,7 +69,10 @@ export default function Home() {
           <input
             type="date"
             value={fromDate}
-            onChange={(e) => { setFromDate(e.target.value); setFilterMode('custom') }}
+            onChange={(e) => {
+              setFromDate(e.target.value)
+              setFilterMode('custom')
+            }}
             style={{ marginLeft: '0.5rem' }}
           />
         </label>
@@ -66,7 +81,10 @@ export default function Home() {
           <input
             type="date"
             value={toDate}
-            onChange={(e) => { setToDate(e.target.value); setFilterMode('custom') }}
+            onChange={(e) => {
+              setToDate(e.target.value)
+              setFilterMode('custom')
+            }}
             style={{ marginLeft: '0.5rem' }}
           />
         </label>

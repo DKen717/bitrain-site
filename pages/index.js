@@ -4,6 +4,7 @@ import {
   Box, MenuItem, InputLabel, FormControl, Select, OutlinedInput, Chip, TextField, Button
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
+import dayjs from 'dayjs'
 
 export default function Home() {
   const [data, setData] = useState([])
@@ -27,22 +28,32 @@ export default function Home() {
   }, [fromDate, toDate, selectedTimes, selectedWagons, page])
 
   async function loadOptions() {
-    const { data: timesRaw } = await supabase
-      .from('Dislocation_daily2')
-      .select('"Время отчета"')
-      .not('Время отчета', 'is', null)
+  const { data: timesRaw } = await supabase
+    .from('Dislocation_daily2')
+    .select('"Время отчета"')
+    .not('Время отчета', 'is', null)
 
-    const { data: wagonsRaw } = await supabase
-      .from('Dislocation_daily2')
-      .select('"Номер вагона"')
-      .not('Номер вагона', 'is', null)
+  const { data: wagonsRaw } = await supabase
+    .from('Dislocation_daily2')
+    .select('"Номер вагона"')
+    .not('Номер вагона', 'is', null)
 
-    const uniqueTimes = [...new Set((timesRaw || []).map(row => row['Время отчета']))]
-    const uniqueWagons = [...new Set((wagonsRaw || []).map(row => row['Номер вагона']))]
+  const times = (timesRaw || [])
+    .map(row => row['Время отчета'])
+    .filter(t => t && t !== 'null' && t !== '')
+    .map(t => dayjs(`1970-01-01T${t}`).format('HH:mm'))  // единый формат
+  
+  const wagons = (wagonsRaw || [])
+    .map(row => row['Номер вагона'])
+    .filter(w => w && w !== 'null' && w !== '')
 
-    setReportTimes(uniqueTimes)
-    setWagonNumbers(uniqueWagons)
-  }
+  const uniqueTimes = [...new Set(times)]
+  const uniqueWagons = [...new Set(wagons)]
+
+  setReportTimes(uniqueTimes)
+  setWagonNumbers(uniqueWagons)
+}
+
 
   async function fetchData() {
     let query = supabase

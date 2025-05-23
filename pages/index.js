@@ -5,35 +5,39 @@ export default function Home() {
   const [data, setData] = useState([])
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
-  const [selectedTimes, setSelectedTimes] = useState([])
-  const [selectedWagons, setSelectedWagons] = useState([])
+  const [reportTime, setReportTime] = useState('')
   const [availableTimes, setAvailableTimes] = useState([])
-  const [availableWagons, setAvailableWagons] = useState([])
-  const [page, setPage] = useState(1)
-  const [trigger, setTrigger] = useState(0)
-  const [total, setTotal] = useState(0)
+  const [allWagonNumbers, setAllWagonNumbers] = useState([])
+  const [filteredWagonNumbers, setFilteredWagonNumbers] = useState([])
 
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
   const pageSize = 20
 
   useEffect(() => {
-    loadFilterValues()
+    loadFilterOptions()
   }, [])
 
   useEffect(() => {
     fetchData()
-  }, [trigger, page])
+  }, [fromDate, toDate, reportTime, filteredWagonNumbers, page])
 
-  async function loadFilterValues() {
-    const [{ data: times }, { data: wagons }] = await Promise.all([
-      supabase.from('Dislocation_daily2').select('"Время отчета"').order('Время отчета', { ascending: false }),
-      supabase.from('Dislocation_daily2').select('"Номер вагона"').order('Номер вагона', { ascending: true })
-    ])
+  async function loadFilterOptions() {
+    const { data: timeData } = await supabase
+      .from('Dislocation_daily2')
+      .select('Время отчета')
+      .order('Время отчета', { ascending: true })
 
-    const uniqueTimes = [...new Set(times.map(row => row['Время отчета']))]
-    const uniqueWagons = [...new Set(wagons.map(row => row['Номер вагона']))]
+    const { data: wagonData } = await supabase
+      .from('Dislocation_daily2')
+      .select('Номер вагона')
+      .order('Номер вагона', { ascending: true })
+
+    const uniqueTimes = [...new Set((timeData || []).map((row) => row['Время отчета']))]
+    const uniqueWagons = [...new Set((wagonData || []).map((row) => row['Номер вагона']))]
 
     setAvailableTimes(uniqueTimes)
-    setAvailableWagons(uniqueWagons)
+    setAllWagonNumbers(uniqueWagons)
   }
 
   async function fetchData() {
@@ -53,8 +57,10 @@ export default function Home() {
 
     if (fromDate) query = query.gte('Дата отчета', fromDate)
     if (toDate) query = query.lte('Дата отчета', toDate)
-    if (selectedTimes.length > 0) query = query.in('Время отчета', selectedTimes)
-    if (selectedWagons.length > 0) query = query.in('Номер вагона', selectedWagons)
+    if (reportTime) query = query.eq('Время отчета', reportTime)
+    if (filteredWagonNumbers.length > 0) {
+      query = query.in('Номер вагона', filteredWagonNumbers)
+    }
 
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
@@ -71,63 +77,60 @@ export default function Home() {
     }
   }
 
-  function triggerSearch() {
-    setPage(1)
-    setTrigger(prev => prev + 1)
-  }
-
   function clearFilters() {
     setFromDate('')
     setToDate('')
-    setSelectedTimes([])
-    setSelectedWagons([])
+    setReportTime('')
+    setFilteredWagonNumbers([])
     setPage(1)
-    setData([])
-    setTotal(0)
-    setTrigger(prev => prev + 1)
   }
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
-      <h1>Aiway Logistic — отчёт по вагонам</h1>
+      <h1>Aiway Logistic — отчет по вагонам</h1>
 
       <div style={{ marginBottom: '1rem' }}>
         <label style={{ marginRight: '1rem' }}>
           📅 От:
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ marginLeft: '0.5rem' }} />
+          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
         </label>
-
         <label style={{ marginRight: '1rem' }}>
           До:
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ marginLeft: '0.5rem' }} />
+          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
         </label>
-
         <label style={{ marginRight: '1rem' }}>
           🕒 Время отчета:
-          <select multiple value={selectedTimes} onChange={(e) => setSelectedTimes(Array.from(e.target.selectedOptions, o => o.value))}>
+          <select value={reportTime} onChange={(e) => setReportTime(e.target.value)}>
+            <option value="">Все</option>
             {availableTimes.map((time, idx) => (
               <option key={idx} value={time}>{time}</option>
             ))}
           </select>
         </label>
-
-        <label>
-          🚃 Номера вагонов:
-          <select multiple value={selectedWagons} onChange={(e) => setSelectedWagons(Array.from(e.target.selectedOptions, o => o.value))} style={{ width: '200px' }}>
-            {availableWagons.map((wagon, idx) => (
-              <option key={idx} value={wagon}>{wagon}</option>
-            ))}
-          </select>
-        </label>
-
-        <button onClick={triggerSearch} style={{ marginLeft: '1rem' }}>🔍 Найти</button>
-        <button onClick={clearFilters} style={{ marginLeft: '0.5rem' }}>🧹 Очистить</button>
+        <button onClick={clearFilters} style={{ marginLeft: '1rem' }}>🧹 Очистить</button>
       </div>
 
-      <table border="1" cellPadding="8" style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{ marginBottom: '1rem' }}>
+        🚃 Фильтр по номеру вагона:
+        <input
+          type="text"
+          placeholder="фильтр по номерам"
+          onChange={(e) => {
+            const values = e.target.value
+              .split(',')
+              .map((v) => v.trim())
+              .filter(Boolean)
+            setFilteredWagonNumbers(values)
+            setPage(1)
+          }}
+          style={{ marginLeft: '0.5rem', width: '250px' }}
+        />
+      </div>
+
+      <table border="1" cellPadding="6" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead style={{ backgroundColor: '#f0f0f0' }}>
           <tr>
-            <th>№</th>
+            <th>#</th>
             <th>Дата отчета</th>
             <th>Время</th>
             <th>Номер вагона</th>
@@ -139,7 +142,9 @@ export default function Home() {
         </thead>
         <tbody>
           {data.length === 0 ? (
-            <tr><td colSpan="8" style={{ textAlign: 'center' }}>Нет данных</td></tr>
+            <tr>
+              <td colSpan="8" style={{ textAlign: 'center' }}>Нет данных</td>
+            </tr>
           ) : (
             data.map((row, idx) => (
               <tr key={idx}>
@@ -157,13 +162,11 @@ export default function Home() {
         </tbody>
       </table>
 
-      <div style={{ marginTop: '1rem', fontSize: '0.9rem', textAlign: 'center' }}>
+      <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>
         <p>Показано: {data.length} строк из {total}</p>
-        <div style={{ marginTop: '0.5rem' }}>
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>⬅ Предыдущая</button>
-          <span style={{ margin: '0 1rem' }}>Страница {page}</span>
-          <button onClick={() => setPage(p => p + 1)} disabled={data.length < pageSize}>Следующая ➡</button>
-        </div>
+        <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>⬅ Пред.</button>
+        <span style={{ margin: '0 1rem' }}>Страница {page}</span>
+        <button onClick={() => setPage((p) => p + 1)} disabled={data.length < pageSize}>След. ➡</button>
       </div>
     </div>
   )

@@ -25,23 +25,30 @@ export default function Home() {
     fetchData()
   }, [fromDate, toDate, selectedTimes, selectedWagons, page])
 
-  async function loadOptions() {
-    const { data: timesRaw } = await supabase
+    async function loadOptions() {
+    const { data: timesRaw, error: timeErr } = await supabase
       .from('Dislocation_daily2')
       .select('"Время отчета"')
       .neq('Время отчета', null)
   
-    const { data: wagonsRaw } = await supabase
+    const { data: wagonsRaw, error: wagonErr } = await supabase
       .from('Dislocation_daily2')
       .select('"Номер вагона"')
       .neq('Номер вагона', null)
   
-    const uniqueTimes = [...new Set(timesRaw.map(row => row['Время отчета']))]
-    const uniqueWagons = [...new Set(wagonsRaw.map(row => row['Номер вагона']))]
+    if (timeErr) console.error('Ошибка загрузки времени:', timeErr.message)
+    if (wagonErr) console.error('Ошибка загрузки вагонов:', wagonErr.message)
+  
+    const uniqueTimes = [...new Set((timesRaw || []).map(row => row['Время отчета']))]
+    const uniqueWagons = [...new Set((wagonsRaw || []).map(row => row['Номер вагона']))]
+  
+    console.log('⏱ Времена:', uniqueTimes)
+    console.log('🚃 Вагоны:', uniqueWagons)
   
     setReportTimes(uniqueTimes)
     setWagonNumbers(uniqueWagons)
   }
+
 
 
   async function fetchData() {

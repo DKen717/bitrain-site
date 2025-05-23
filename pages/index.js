@@ -29,12 +29,20 @@ export default function Home() {
     const { data: times } = await supabase
       .from('Dislocation_daily2')
       .select('"Время отчета"')
+      .neq('Время отчета', null)
       .order('Время отчета', { ascending: true })
+
+    const uniqueTimes = [...new Set(times.map(row => row['Время отчета']))]
+    setReportTimes(uniqueTimes)
 
     const { data: wagons } = await supabase
       .from('Dislocation_daily2')
       .select('"Номер вагона"')
+      .neq('Номер вагона', null)
       .order('Номер вагона', { ascending: true })
+
+    const uniqueWagons = [...new Set(wagons.map(row => row['Номер вагона']))]
+    setWagonNumbers(uniqueWagons)
 
     setReportTimes([...new Set(times.map(row => row['Время отчета']))])
     setWagonNumbers([...new Set(wagons.map(row => row['Номер вагона']))])

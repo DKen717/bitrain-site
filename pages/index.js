@@ -26,27 +26,23 @@ export default function Home() {
   }, [fromDate, toDate, selectedTimes, selectedWagons, page])
 
   async function loadOptions() {
-    const { data: times } = await supabase
+    const { data: timesRaw } = await supabase
       .from('Dislocation_daily2')
       .select('"Время отчета"')
       .neq('Время отчета', null)
-      .order('Время отчета', { ascending: true })
-
-    const uniqueTimes = [...new Set(times.map(row => row['Время отчета']))]
-    setReportTimes(uniqueTimes)
-
-    const { data: wagons } = await supabase
+  
+    const { data: wagonsRaw } = await supabase
       .from('Dislocation_daily2')
       .select('"Номер вагона"')
       .neq('Номер вагона', null)
-      .order('Номер вагона', { ascending: true })
-
-    const uniqueWagons = [...new Set(wagons.map(row => row['Номер вагона']))]
+  
+    const uniqueTimes = [...new Set(timesRaw.map(row => row['Время отчета']))]
+    const uniqueWagons = [...new Set(wagonsRaw.map(row => row['Номер вагона']))]
+  
+    setReportTimes(uniqueTimes)
     setWagonNumbers(uniqueWagons)
-
-    setReportTimes([...new Set(times.map(row => row['Время отчета']))])
-    setWagonNumbers([...new Set(wagons.map(row => row['Номер вагона']))])
   }
+
 
   async function fetchData() {
     let query = supabase

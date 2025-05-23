@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../src/supabaseClient'
+import dayjs from 'dayjs'
 import {
   Box, MenuItem, InputLabel, FormControl, Select, OutlinedInput, Chip, TextField, Button
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
-import dayjs from 'dayjs'
+
 
 export default function Home() {
   const [data, setData] = useState([])
@@ -26,8 +27,6 @@ export default function Home() {
   useEffect(() => {
     fetchData()
   }, [fromDate, toDate, selectedTimes, selectedWagons, page])
-
-  import dayjs from 'dayjs'
 
   async function loadOptions() {
     const { data: timesRaw } = await supabase

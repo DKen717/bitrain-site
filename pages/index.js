@@ -102,14 +102,24 @@ export default function Home() {
       <h1>Aiway Logistic — отчет</h1>
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-        <label>
-          📅 От:
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-        </label>
-        <label>
-          До:
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-        </label>
+        <TextField
+          label="Дата от"
+          type="date"
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 160 }}
+        />
+        
+        <TextField
+          label="Дата до"
+          type="date"
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 160 }}
+        />
+
 
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>Время отчета</InputLabel>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../src/supabaseClient'
 import {
-  Box, Select, MenuItem, InputLabel, FormControl, OutlinedInput, Chip
+  Box, MenuItem, InputLabel, FormControl, Select, OutlinedInput, Chip, TextField, Button
 } from '@mui/material'
+import Autocomplete from '@mui/material/Autocomplete'
 
 export default function Home() {
   const [data, setData] = useState([])
@@ -15,7 +16,7 @@ export default function Home() {
 
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
-  const pageSize = 20
+  const pageSize = 50
 
   useEffect(() => {
     loadOptions()
@@ -26,31 +27,22 @@ export default function Home() {
   }, [fromDate, toDate, selectedTimes, selectedWagons, page])
 
   async function loadOptions() {
-    const { data: timesRaw, error: timeErr } = await supabase
+    const { data: timesRaw } = await supabase
       .from('Dislocation_daily2')
       .select('"Время отчета"')
       .not('Время отчета', 'is', null)
-  
-    const { data: wagonsRaw, error: wagonErr } = await supabase
+
+    const { data: wagonsRaw } = await supabase
       .from('Dislocation_daily2')
       .select('"Номер вагона"')
       .not('Номер вагона', 'is', null)
-  
-    if (timeErr) console.error('Ошибка загрузки времени:', timeErr.message)
-    if (wagonErr) console.error('Ошибка загрузки вагонов:', wagonErr.message)
-  
+
     const uniqueTimes = [...new Set((timesRaw || []).map(row => row['Время отчета']))]
     const uniqueWagons = [...new Set((wagonsRaw || []).map(row => row['Номер вагона']))]
-  
-    console.log('⏱ Времена:', uniqueTimes)
-    console.log('🚃 Вагоны:', uniqueWagons)
-  
+
     setReportTimes(uniqueTimes)
     setWagonNumbers(uniqueWagons)
   }
-
-
-
 
   async function fetchData() {
     let query = supabase
@@ -75,9 +67,7 @@ export default function Home() {
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
-    query = query.range(from, to)
-
-    const { data, count, error } = await query
+    const { data, count, error } = await query.range(from, to)
 
     if (error) {
       console.error('❌ Ошибка загрузки:', error.message)
@@ -99,7 +89,7 @@ export default function Home() {
     <Box sx={{ padding: '2rem', fontFamily: 'Arial' }}>
       <h1>Aiway Logistic — отчет</h1>
 
-      <Box sx={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
         <label>
           📅 От:
           <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
@@ -123,35 +113,28 @@ export default function Home() {
             )}
           >
             {reportTimes.map((time) => (
-              <MenuItem key={time} value={time}>
-                {time}
-              </MenuItem>
+              <MenuItem key={time} value={time}>{time}</MenuItem>
             ))}
           </Select>
         </FormControl>
 
-        <FormControl sx={{ minWidth: 250 }}>
-          <InputLabel>Номера вагонов</InputLabel>
-          <Select
-            multiple
-            value={selectedWagons}
-            onChange={(e) => setSelectedWagons(e.target.value)}
-            input={<OutlinedInput label="Номера вагонов" />}
-            renderValue={(selected) => (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {selected.map((value) => <Chip key={value} label={value} />)}
-              </Box>
-            )}
-          >
-            {wagonNumbers.map((wagon) => (
-              <MenuItem key={wagon} value={wagon}>
-                {wagon}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Autocomplete
+          multiple
+          options={wagonNumbers}
+          getOptionLabel={(opt) => opt.toString()}
+          value={selectedWagons}
+          onChange={(event, newValue) => {
+            setSelectedWagons(newValue)
+            setPage(1)
+          }}
+          filterSelectedOptions
+          renderInput={(params) => (
+            <TextField {...params} label="Номера вагонов" placeholder="Вводите номер" />
+          )}
+          sx={{ minWidth: 300 }}
+        />
 
-        <button onClick={clearFilters}>🧹 Очистить</button>
+        <Button onClick={clearFilters} variant="outlined" color="secondary">🧹 Очистить</Button>
       </Box>
 
       <table border="1" cellPadding="6" style={{ width: '100%', borderCollapse: 'collapse' }}>

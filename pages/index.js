@@ -25,16 +25,16 @@ export default function Home() {
     fetchData()
   }, [fromDate, toDate, selectedTimes, selectedWagons, page])
 
-    async function loadOptions() {
+  async function loadOptions() {
     const { data: timesRaw, error: timeErr } = await supabase
       .from('Dislocation_daily2')
       .select('"Время отчета"')
-      .neq('Время отчета', null)
+      .not('Время отчета', 'is', null)
   
     const { data: wagonsRaw, error: wagonErr } = await supabase
       .from('Dislocation_daily2')
       .select('"Номер вагона"')
-      .neq('Номер вагона', null)
+      .not('Номер вагона', 'is', null)
   
     if (timeErr) console.error('Ошибка загрузки времени:', timeErr.message)
     if (wagonErr) console.error('Ошибка загрузки вагонов:', wagonErr.message)
@@ -48,6 +48,7 @@ export default function Home() {
     setReportTimes(uniqueTimes)
     setWagonNumbers(uniqueWagons)
   }
+
 
 
 

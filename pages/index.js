@@ -5,10 +5,12 @@ export default function Home() {
   const [data, setData] = useState([])
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
+  const [reportTime, setReportTime] = useState('')
   const [wagonNumbers, setWagonNumbers] = useState('')
   const [page, setPage] = useState(1)
   const [trigger, setTrigger] = useState(0)
   const [total, setTotal] = useState(0)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
 
   const pageSize = 20
 
@@ -17,30 +19,64 @@ export default function Home() {
   }, [trigger, page])
 
   async function fetchData() {
+    let base = supabase
+      .from('Dislocation_daily2')
+      .select(`
+        "Номер вагона",
+        "Дата совершения операции",
+        "Дата отчета",
+        "Время отчета",
+        "Станция операции",
+        "Станция отправления",
+        "Станция назначения"
+      `, { count: 'exact' })
+      .order('Дата отчета', { ascending: false })
+      .order('Время отчета', { ascending: false })
+
+    // Первоначальная загрузка — только свежие данные
+    if (isInitialLoad) {
+      const { data: latest, error: err1 } = await supabase
+        .from('Dislocation_daily2')
+        .select('"Дата отчета", "Время отчета"')
+        .order('Дата отчета', { ascending: false })
+        .order('Время отчета', { ascending: false })
+        .limit(1)
+
+      if (latest && latest.length > 0) {
+        const latestDate = latest[0]['Дата отчета']
+        const latestTime = latest[0]['Время отчета']
+        setFromDate(latestDate)
+        setToDate(latestDate)
+        setReportTime(latestTime)
+        setIsInitialLoad(false)
+
+        base = base
+          .eq('Дата отчета', latestDate)
+          .eq('Время отчета', latestTime)
+      }
+    } else {
+      if (fromDate) base = base.gte('Дата отчета', fromDate)
+      if (toDate) base = base.lte('Дата отчета', toDate)
+      if (reportTime) base = base.eq('Время отчета', reportTime)
+
+      const numbers = wagonNumbers
+        .split(',')
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0)
+
+      if (numbers.length === 1) {
+        base = base.eq('Номер вагона', numbers[0])
+      } else if (numbers.length > 1) {
+        base = base.in('Номер вагона', numbers)
+      }
+    }
+
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
-    let query = supabase
-      .from('Dislocation_daily2')
-      .select('"Номер вагона", "Дата совершения операции", date_only', { count: 'exact' })
-      .order('date_only', { ascending: false })
-      .range(from, to)
+    base = base.range(from, to)
 
-    if (fromDate) query = query.gte('date_only', fromDate)
-    if (toDate) query = query.lte('date_only', toDate)
-
-    const numbers = wagonNumbers
-      .split(',')
-      .map((n) => n.trim())
-      .filter((n) => n.length > 0)
-
-    if (numbers.length === 1) {
-      query = query.eq('Номер вагона', numbers[0])
-    } else if (numbers.length > 1) {
-      query = query.in('Номер вагона', numbers)
-    }
-
-    const { data, count, error } = await query
+    const { data, count, error } = await base
 
     if (error) {
       console.error('❌ Ошибка загрузки:', error.message)
@@ -53,13 +89,16 @@ export default function Home() {
   function clearFilters() {
     setFromDate('')
     setToDate('')
+    setReportTime('')
     setWagonNumbers('')
     setPage(1)
     setData([])
     setTotal(0)
+    setTrigger((prev) => prev + 1)
   }
 
   function triggerSearch() {
+    setIsInitialLoad(false)
     setPage(1)
     setTrigger((prev) => prev + 1)
   }
@@ -89,11 +128,21 @@ export default function Home() {
           />
         </label>
 
+        <label style={{ marginRight: '1rem' }}>
+          🕒 Время отчета:
+          <input
+            type="time"
+            value={reportTime}
+            onChange={(e) => setReportTime(e.target.value)}
+            style={{ marginLeft: '0.5rem' }}
+          />
+        </label>
+
         <label>
-          🚃 Номер вагона(ов):
+          🚃 Номера вагонов:
           <input
             type="text"
-            placeholder="например: 9301, 9714"
+            placeholder="напр: 9301, 9714"
             value={wagonNumbers}
             onChange={(e) => setWagonNumbers(e.target.value)}
             style={{ marginLeft: '0.5rem', width: '200px' }}
@@ -108,23 +157,31 @@ export default function Home() {
         <thead style={{ backgroundColor: '#f0f0f0' }}>
           <tr>
             <th>№</th>
-            <th>Дата (date_only)</th>
+            <th>Дата отчета</th>
+            <th>Время</th>
             <th>Номер вагона</th>
             <th>Дата операции</th>
+            <th>Станция операции</th>
+            <th>Станция отправления</th>
+            <th>Станция назначения</th>
           </tr>
         </thead>
         <tbody>
           {data.length === 0 ? (
             <tr>
-              <td colSpan="4" style={{ textAlign: 'center' }}>Нет данных</td>
+              <td colSpan="8" style={{ textAlign: 'center' }}>Нет данных</td>
             </tr>
           ) : (
             data.map((row, idx) => (
               <tr key={idx}>
                 <td>{(page - 1) * pageSize + idx + 1}</td>
-                <td>{row.date_only}</td>
+                <td>{row['Дата отчета']}</td>
+                <td>{row['Время отчета']}</td>
                 <td>{row['Номер вагона']}</td>
                 <td>{row['Дата совершения операции']}</td>
+                <td>{row['Станция операции']}</td>
+                <td>{row['Станция отправления']}</td>
+                <td>{row['Станция назначения']}</td>
               </tr>
             ))
           )}

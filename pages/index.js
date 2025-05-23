@@ -27,32 +27,34 @@ export default function Home() {
     fetchData()
   }, [fromDate, toDate, selectedTimes, selectedWagons, page])
 
+  import dayjs from 'dayjs'
+
   async function loadOptions() {
-  const { data: timesRaw } = await supabase
-    .from('Dislocation_daily2')
-    .select('"Время отчета"')
-    .not('Время отчета', 'is', null)
-
-  const { data: wagonsRaw } = await supabase
-    .from('Dislocation_daily2')
-    .select('"Номер вагона"')
-    .not('Номер вагона', 'is', null)
-
-  const times = (timesRaw || [])
-    .map(row => row['Время отчета'])
-    .filter(t => t && t !== 'null' && t !== '')
-    .map(t => dayjs(`1970-01-01T${t}`).format('HH:mm'))  // единый формат
+    const { data: timesRaw } = await supabase
+      .from('Dislocation_daily2')
+      .select('"Время отчета"')
+      .not('Время отчета', 'is', null)
+      .limit(10000)
   
-  const wagons = (wagonsRaw || [])
-    .map(row => row['Номер вагона'])
-    .filter(w => w && w !== 'null' && w !== '')
+    const { data: wagonsRaw } = await supabase
+      .from('Dislocation_daily2')
+      .select('"Номер вагона"')
+      .not('Номер вагона', 'is', null)
+      .limit(10000)
+  
+    const times = (timesRaw || [])
+      .map(row => row['Время отчета'])
+      .filter(t => !!t && t !== 'null' && t !== '')
+      .map(t => dayjs(`1970-01-01T${t}`).format('HH:mm'))
+  
+    const wagons = (wagonsRaw || [])
+      .map(row => row['Номер вагона'])
+      .filter(w => !!w && w !== 'null' && w !== '')
+  
+    setReportTimes([...new Set(times)])
+    setWagonNumbers([...new Set(wagons)])
+  }
 
-  const uniqueTimes = [...new Set(times)]
-  const uniqueWagons = [...new Set(wagons)]
-
-  setReportTimes(uniqueTimes)
-  setWagonNumbers(uniqueWagons)
-}
 
 
   async function fetchData() {

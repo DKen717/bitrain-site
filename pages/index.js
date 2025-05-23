@@ -28,12 +28,12 @@ export default function Home() {
   async function loadOptions() {
     const { data: times } = await supabase
       .from('Dislocation_daily2')
-      .select('Время отчета')
+      .select('"Время отчета"')
       .order('Время отчета', { ascending: true })
 
     const { data: wagons } = await supabase
       .from('Dislocation_daily2')
-      .select('Номер вагона')
+      .select('"Номер вагона"')
       .order('Номер вагона', { ascending: true })
 
     setReportTimes([...new Set(times.map(row => row['Время отчета']))])

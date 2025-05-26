@@ -47,7 +47,7 @@ export default function Home() {
       .from('Dislocation_daily2')
       .select('"Номер вагона"')
       .not('Номер вагона', 'is', null)
-      .range(0, 30000)
+      .range(0, 100000)
 
     if (errTimes || errWagons) {
       console.error('❌ Ошибка запроса:', errTimes || errWagons)

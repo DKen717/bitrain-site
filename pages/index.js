@@ -36,15 +36,17 @@ export default function Home() {
   async function loadOptions() {
     console.log('📥 Загрузка фильтров запущена')
   
-  const { count, error } = await supabase
-    .from('Dislocation_daily2')
-    .select('*', { count: 'exact', head: true })
-  
-  console.log('🧮 Кол-во строк в таблице:', count)
-  if (error) console.error('❌ Ошибка при count:', error)
-    
-  
     try {
+
+      const { count, error } = await supabase
+        .from('Dislocation_daily2')
+        .select('*', { count: 'exact', head: true })
+      
+      console.log('🧮 Кол-во строк в таблице:', count)
+      if (error) console.error('❌ Ошибка при count:', error)
+
+
+      
       const { data: timesRaw, error: errTimes } = await supabase
         .from('Dislocation_daily2')
         .select('"Время отчета"')

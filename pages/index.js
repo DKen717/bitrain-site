@@ -25,48 +25,58 @@ export default function Home() {
   const pageSize = 50
 
   useEffect(() => {
-    loadOptions()
-  }, [])
+  console.log('🟡 ИТОГО times:', reportTimes)
+  console.log('🟡 ИТОГО wagons:', wagonNumbers)
+  }, [reportTimes, wagonNumbers])
+
 
   async function loadOptions() {
     console.log('📥 Загрузка фильтров запущена')
   
-    const { data: allTimesRaw, error: timeError } = await supabase
-      .from('Dislocation_daily2')
-      .select('"Время отчета"')
-      .not('Время отчета', 'is', null)
-      .limit(10000)
+    try {
+      const { data: timesRaw, error: errTimes } = await supabase
+        .from('Dislocation_daily2')
+        .select('"Время отчета"')
+        .not('Время отчета', 'is', null)
+        .limit(5000)
   
-    const { data: allWagonsRaw, error: wagonError } = await supabase
-      .from('Dislocation_daily2')
-      .select('"Номер вагона"')
-      .not('Номер вагона', 'is', null)
-      .limit(10000)
+      const { data: wagonsRaw, error: errWagons } = await supabase
+        .from('Dislocation_daily2')
+        .select('"Номер вагона"')
+        .not('Номер вагона', 'is', null)
+        .limit(5000)
   
-    if (timeError || wagonError) {
-      console.error('❌ Ошибка загрузки фильтров', timeError || wagonError)
-      return
+      if (errTimes || errWagons) {
+        console.error('❌ Ошибка запроса:', errTimes || errWagons)
+        return
+      }
+  
+      console.log('🧾 Всего времен:', timesRaw.length)
+      console.log('🧾 Всего вагонов:', wagonsRaw.length)
+  
+      const times = Array.from(new Set(
+        (timesRaw || [])
+          .map(row => row['Время отчета'])
+          .filter(Boolean)
+          .map(t => t.slice(0, 5))
+      ))
+  
+      const wagons = Array.from(new Set(
+        (wagonsRaw || [])
+          .map(row => row['Номер вагона'])
+          .filter(Boolean)
+      ))
+  
+      console.log('⏱ Времена (уникальные):', times)
+      console.log('🚃 Вагоны (уникальные):', wagons)
+  
+      setReportTimes(times)
+      setWagonNumbers(wagons)
+    } catch (err) {
+      console.error('❌ Ошибка выполнения loadOptions:', err)
     }
-  
-    const times = Array.from(new Set(
-      (allTimesRaw || [])
-        .map(row => row['Время отчета'])
-        .filter(t => !!t && t !== 'null' && t !== '')
-        .map(t => t.slice(0, 5))
-    ))
-  
-    const wagons = Array.from(new Set(
-      (allWagonsRaw || [])
-        .map(row => row['Номер вагона'])
-        .filter(w => !!w && w !== 'null' && w !== '')
-    ))
-  
-    console.log('⏱ Времена (уникальные):', times)
-    console.log('🚃 Вагоны (уникальные):', wagons)
-  
-    setReportTimes(times)
-    setWagonNumbers(wagons)
   }
+
 
 
 

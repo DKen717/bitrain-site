@@ -48,13 +48,13 @@ export default function Home() {
 
       
       const { data: timesRaw, error: errTimes } = await supabase
-        .from('Dislocation_daily2')
+        .from('"Dislocation_daily2"')
         .select('"Время отчета"')
         .not('Время отчета', 'is', null)
         .limit(5000)
   
       const { data: wagonsRaw, error: errWagons } = await supabase
-        .from('Dislocation_daily2')
+        .from('"Dislocation_daily2"')
         .select('"Номер вагона"')
         .not('Номер вагона', 'is', null)
         .limit(5000)

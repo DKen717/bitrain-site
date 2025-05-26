@@ -17,6 +17,8 @@ export default function Home() {
   const [selectedTimes, setSelectedTimes] = useState([])
   const [wagonNumbers, setWagonNumbers] = useState([])
   const [selectedWagons, setSelectedWagons] = useState([])
+  const [workingStatus, setWorkingStatus] = useState('')
+
 
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
@@ -66,10 +68,14 @@ export default function Home() {
         "Дата совершения операции",
         "Дата отчета",
         "Время отчета",
-        "Станция операции",
+        "Станция операция",
         "Станция отправления",
         "Станция назначения",
-        "Наименование операции"
+        "Наименование операции",
+        "Наименование груза",
+        "Тип вагона",
+        "Порожний/груженный",
+        "Рабочий/нерабочий"
       `, { count: 'exact' })
       .order('Дата отчета', { ascending: false })
       .order('Время отчета', { ascending: false })
@@ -78,6 +84,8 @@ export default function Home() {
     if (toDate) query = query.lte('Дата отчета', toDate)
     if (selectedTimes.length > 0) query = query.in('Время отчета', selectedTimes)
     if (selectedWagons.length > 0) query = query.in('Номер вагона', selectedWagons)
+    if (workingStatus) {query = query.eq('Рабочий/нерабочий', workingStatus)}
+
 
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
@@ -143,6 +151,19 @@ export default function Home() {
           </Select>
         </FormControl>
 
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel>Рабочий/нерабочий</InputLabel>
+          <Select
+            value={workingStatus}
+            onChange={(e) => setWorkingStatus(e.target.value)}
+            input={<OutlinedInput label="Рабочий/нерабочий" />}
+          >
+            <MenuItem value="">Все</MenuItem>
+            <MenuItem value="Рабочий">Рабочий</MenuItem>
+            <MenuItem value="Нерабочий">Нерабочий</MenuItem>
+          </Select>
+        </FormControl>
+
         <Autocomplete
           multiple
           options={wagonNumbers}
@@ -174,6 +195,11 @@ export default function Home() {
             <th>Станция операции</th>
             <th>Станция отправления</th>
             <th>Станция назначения</th>
+            <th>Наименование груза</th>
+            <th>Тип вагона</th>
+            <th>Порожний/груженный</th>
+            <th>Рабочий/нерабочий</th>
+
           </tr>
         </thead>
         <tbody>
@@ -191,6 +217,11 @@ export default function Home() {
                 <td>{row['Станция операции']}</td>
                 <td>{row['Станция отправления']}</td>
                 <td>{row['Станция назначения']}</td>
+                <td>{row['Наименование груза']}</td>
+                <td>{row['Тип вагона']}</td>
+                <td>{row['Порожний/груженный']}</td>
+                <td>{row['Рабочий/нерабочий']}</td>
+
               </tr>
             ))
           )}

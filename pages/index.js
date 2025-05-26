@@ -47,17 +47,18 @@ export default function Home() {
 
 
       
-      const { data: timesRaw, error: errTimes } = await supabase
-        .from('"Dislocation_daily2"')
+      const { data: timesRaw } = await supabase
+        .from('Dislocation_daily2') // ✅ без кавычек
         .select('"Время отчета"')
         .not('Время отчета', 'is', null)
         .limit(5000)
-  
-      const { data: wagonsRaw, error: errWagons } = await supabase
-        .from('"Dislocation_daily2"')
+      
+      const { data: wagonsRaw } = await supabase
+        .from('Dislocation_daily2') // ✅ без кавычек
         .select('"Номер вагона"')
         .not('Номер вагона', 'is', null)
         .limit(5000)
+
   
       if (errTimes || errWagons) {
         console.error('❌ Ошибка запроса:', errTimes || errWagons)
@@ -79,7 +80,10 @@ export default function Home() {
           .map(row => row['Номер вагона'])
           .filter(Boolean)
       ))
-  
+      
+      if (!timesRaw) console.log('⚠️ timesRaw пустой или undefined')
+      if (!wagonsRaw) console.log('⚠️ wagonsRaw пустой или undefined')
+
       console.log('⏱ Времена (уникальные):', times)
       console.log('🚃 Вагоны (уникальные):', wagons)
   

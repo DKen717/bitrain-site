@@ -54,7 +54,7 @@ export default function Home() {
     setWagonNumbers([...new Set(wagons)])
   }
 
-  async function fetchData() {
+    async function fetchData() {
     let query = supabase
       .from('Dislocation_daily2')
       .select(`
@@ -70,27 +70,42 @@ export default function Home() {
         "Тип вагона",
         "Порожний/груженный",
         "Рабочий/нерабочий"
-        `, { count: 'exact' })
-
-      if (fromDate) query = query.gte('Дата отчета', fromDate)
-      if (toDate) query = query.lte('Дата отчета', toDate)
-      if (selectedTimes.length > 0) {
-        const formattedTimes = selectedTimes.map(t => `${t}:00`)
-        query = query.in('Время отчета', formattedTimes)
-      }
-      if (selectedWagons.length > 0) {
-        query = query.in('Номер вагона', selectedWagons)
-      }
-      if (workingStatus) {
-        query = query.eq('Рабочий/нерабочий', workingStatus)
-      }
-      
-      // пагинация
-      query = query.range((page - 1) * pageSize, page * pageSize - 1)
-      
-      const { data, count, error } = await query
-    
-    const allData = response.data
+      `, { count: 'exact' }) // включает количество строк
+  
+    // 📆 Фильтр по дате
+    if (fromDate) query = query.gte('Дата отчета', fromDate)
+    if (toDate) query = query.lte('Дата отчета', toDate)
+  
+    // ⏱ Фильтр по времени (добавляем :00)
+    if (selectedTimes.length > 0) {
+      const formattedTimes = selectedTimes.map(t => `${t}:00`)
+      query = query.in('Время отчета', formattedTimes)
+    }
+  
+    // 🚃 Фильтр по вагонам
+    if (selectedWagons.length > 0) {
+      query = query.in('Номер вагона', selectedWagons)
+    }
+  
+    // ⚙ Фильтр по рабочему статусу
+    if (workingStatus) {
+      query = query.eq('Рабочий/нерабочий', workingStatus)
+    }
+  
+    // 🔢 Пагинация
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+    query = query.range(from, to)
+  
+    const { data, count, error } = await query
+  
+    if (error) {
+      console.error('❌ Ошибка загрузки:', error)
+    } else {
+      setData(data)
+      setTotal(count)
+    }
+  }
 
 
   function clearFilters() {

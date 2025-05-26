@@ -3,11 +3,12 @@ import { supabase } from '../src/supabaseClient'
 import dayjs from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
 dayjs.extend(customParseFormat)
+
 import {
-  Box, MenuItem, InputLabel, FormControl, Select, OutlinedInput, Chip, TextField, Button
+  Box, MenuItem, InputLabel, FormControl, Select, OutlinedInput,
+  Chip, TextField, Button
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
-
 
 export default function Home() {
   const [data, setData] = useState([])
@@ -18,10 +19,8 @@ export default function Home() {
   const [wagonNumbers, setWagonNumbers] = useState([])
   const [selectedWagons, setSelectedWagons] = useState([])
   const [workingStatus, setWorkingStatus] = useState('')
-
-
   const [page, setPage] = useState(1)
-  const [total, setTotal] = useState(0)
+
   const pageSize = 50
 
   useEffect(() => {
@@ -31,11 +30,9 @@ export default function Home() {
     loadOptions()
   }, [])
 
-
   useEffect(() => {
     fetchData()
   }, [fromDate, toDate, selectedTimes, selectedWagons, workingStatus, page])
-
 
   async function loadOptions() {
     const { data: timesRaw } = await supabase
@@ -43,27 +40,25 @@ export default function Home() {
       .select('"Время отчета"')
       .not('Время отчета', 'is', null)
       .limit(10000)
-  
+
     const { data: wagonsRaw } = await supabase
       .from('Dislocation_daily2')
       .select('"Номер вагона"')
       .not('Номер вагона', 'is', null)
       .limit(10000)
-  
+
     const times = (timesRaw || [])
       .map(row => row['Время отчета'])
       .filter(t => !!t && t !== 'null' && t !== '')
       .map(t => dayjs(`1970-01-01T${t}`).format('HH:mm'))
-  
+
     const wagons = (wagonsRaw || [])
       .map(row => row['Номер вагона'])
       .filter(w => !!w && w !== 'null' && w !== '')
-  
+
     setReportTimes([...new Set(times)])
     setWagonNumbers([...new Set(wagons)])
   }
-
-
 
   async function fetchData() {
     let query = supabase
@@ -81,7 +76,7 @@ export default function Home() {
         "Тип вагона",
         "Порожний/груженный",
         "Рабочий/нерабочий"
-      `,)
+      `)
       .order('Дата отчета', { ascending: false })
       .order('Время отчета', { ascending: false })
 
@@ -89,27 +84,27 @@ export default function Home() {
     if (toDate) query = query.lte('Дата отчета', toDate)
     if (selectedTimes.length > 0) query = query.in('Время отчета', selectedTimes)
     if (selectedWagons.length > 0) query = query.in('Номер вагона', selectedWagons)
-    if (workingStatus) {query = query.eq('Рабочий/нерабочий', workingStatus)}
-
+    if (workingStatus) query = query.eq('Рабочий/нерабочий', workingStatus)
 
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
-    const { data, count, error } = await query.range(from, to)
+    const { data, error } = await query.range(from, to)
 
     if (error) {
-      console.error('❌ Ошибка загрузки:', error.message)
+      console.error('❌ Ошибка загрузки:', error)
     } else {
       setData(data)
-      setTotal(count || 0)
     }
   }
 
   function clearFilters() {
-    setFromDate('')
-    setToDate('')
+    const today = dayjs().format('YYYY-MM-DD')
+    setFromDate(today)
+    setToDate(today)
     setSelectedTimes([])
     setSelectedWagons([])
+    setWorkingStatus('')
     setPage(1)
   }
 
@@ -126,7 +121,6 @@ export default function Home() {
           InputLabelProps={{ shrink: true }}
           sx={{ minWidth: 160 }}
         />
-        
         <TextField
           label="Дата до"
           type="date"
@@ -135,8 +129,6 @@ export default function Home() {
           InputLabelProps={{ shrink: true }}
           sx={{ minWidth: 160 }}
         />
-
-
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>Время отчета</InputLabel>
           <Select
@@ -155,7 +147,6 @@ export default function Home() {
             ))}
           </Select>
         </FormControl>
-
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>Рабочий/нерабочий</InputLabel>
           <Select
@@ -168,7 +159,6 @@ export default function Home() {
             <MenuItem value="Нерабочий">Нерабочий</MenuItem>
           </Select>
         </FormControl>
-
         <Autocomplete
           multiple
           options={wagonNumbers}
@@ -184,7 +174,6 @@ export default function Home() {
           )}
           sx={{ minWidth: 300 }}
         />
-
         <Button onClick={clearFilters} variant="outlined" color="secondary">🧹 Очистить</Button>
       </Box>
 
@@ -204,12 +193,11 @@ export default function Home() {
             <th>Тип вагона</th>
             <th>Порожний/груженный</th>
             <th>Рабочий/нерабочий</th>
-
           </tr>
         </thead>
         <tbody>
           {data.length === 0 ? (
-            <tr><td colSpan="8" style={{ textAlign: 'center' }}>Нет данных</td></tr>
+            <tr><td colSpan="13" style={{ textAlign: 'center' }}>Нет данных</td></tr>
           ) : (
             data.map((row, idx) => (
               <tr key={idx}>
@@ -226,7 +214,6 @@ export default function Home() {
                 <td>{row['Тип вагона']}</td>
                 <td>{row['Порожний/груженный']}</td>
                 <td>{row['Рабочий/нерабочий']}</td>
-
               </tr>
             ))
           )}
@@ -234,7 +221,6 @@ export default function Home() {
       </table>
 
       <Box sx={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>
-        <p>Показано: {data.length} из {total} строк</p>
         <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>⬅ Пред.</button>
         <span style={{ margin: '0 1rem' }}>Страница {page}</span>
         <button onClick={() => setPage((p) => p + 1)} disabled={data.length < pageSize}>След. ➡</button>

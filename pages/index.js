@@ -78,18 +78,13 @@ export default function Home() {
     if (selectedWagons.length > 0) query = query.in('Номер вагона', selectedWagons)
     if (workingStatus) query = query.eq('Рабочий/нерабочий', workingStatus)
 
-    const { data, count } = await query
-
-
-    if (error) {
-      console.error('❌ Ошибка загрузки:', error)
-    } else {
-      setTotal(allData.length)
-      const from = (page - 1) * pageSize
-      const to = from + pageSize
-      setData(allData.slice(from, to))
+    const response = await query
+    if (response.error) {
+      console.error('❌ Ошибка загрузки:', response.error)
+      return
     }
-  }
+    const allData = response.data
+
 
   function clearFilters() {
     setFromDate('')

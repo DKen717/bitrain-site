@@ -25,12 +25,17 @@ export default function Home() {
   const pageSize = 50
 
   useEffect(() => {
+    const today = dayjs().format('YYYY-MM-DD')
+    setFromDate(today)
+    setToDate(today)
     loadOptions()
   }, [])
 
+
   useEffect(() => {
     fetchData()
-  }, [fromDate, toDate, selectedTimes, selectedWagons, page])
+  }, [fromDate, toDate, selectedTimes, selectedWagons, workingStatus, page])
+
 
   async function loadOptions() {
     const { data: timesRaw } = await supabase
@@ -76,7 +81,7 @@ export default function Home() {
         "Тип вагона",
         "Порожний/груженный",
         "Рабочий/нерабочий"
-      `, { count: 'exact' })
+      `,)
       .order('Дата отчета', { ascending: false })
       .order('Время отчета', { ascending: false })
 

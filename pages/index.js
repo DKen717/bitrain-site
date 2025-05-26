@@ -28,26 +28,34 @@ export default function Home() {
     loadOptions()
   }, [])
 
-  async function loadOptions() {
-    const { data: timesRaw } = await supabase
-      .from('Dislocation_daily2')
-      .select('"Время отчета"', { distinct: true })
-      .not('"Время отчета"', 'is', null)
-      .limit(10000)
+      async function loadOptions() {
+      // 🔹 Получаем ВСЕ значения (не ограничены текущей страницей)
+      const { data: allTimesRaw } = await supabase
+        .from('Dislocation_daily2')
+        .select('"Время отчета"')
+        .not('Время отчета', 'is', null)
+        .limit(10000)
+    
+      const { data: allWagonsRaw } = await supabase
+        .from('Dislocation_daily2')
+        .select('"Номер вагона"')
+        .not('Номер вагона', 'is', null)
+        .limit(10000)
+    
+      const times = allTimesRaw
+        .map(row => row['Время отчета'])
+        .filter(t => !!t && t !== 'null' && t !== '')
+        .map(t => t.slice(0,5)) // обрезаем до HH:mm
+    
+      const wagons = allWagonsRaw
+        .map(row => row['Номер вагона'])
+        .filter(w => !!w && w !== 'null' && w !== '')
+    
+      // 🔁 Удалим дубликаты через Set
+      setReportTimes([...new Set(times)])
+      setWagonNumbers([...new Set(wagons)])
+    }
 
-    const { data: wagonsRaw } = await supabase
-      .from('Dislocation_daily2')
-      .select('"Номер вагона"', { distinct: true })
-      .not('"Номер вагона"', 'is', null)
-      .limit(1000)
-
-const times = timesRaw.map(row => row['Время отчета']).filter(t => !!t)
-const wagons = wagonsRaw.map(row => row['Номер вагона']).filter(w => !!w)
-
-setReportTimes([...new Set(times.map(t => t.slice(0,5)))]) // "HH:MM"
-setWagonNumbers([...new Set(wagons)])
-
-  }
 
     async function fetchData() {
     let query = supabase

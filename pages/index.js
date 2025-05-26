@@ -34,60 +34,47 @@ export default function Home() {
   }, [reportTimes, wagonNumbers])
 
   async function loadOptions() {
-    console.log('📥 Загрузка фильтров запущена')
+  console.log('📥 Загрузка фильтров запущена')
 
-    try {
-      const { count, error } = await supabase
-        .from('Dislocation_daily2')
-        .select('*', { count: 'exact', head: true })
+  try {
+    const { data: timesRaw, error: errTimes } = await supabase
+      .from('Dislocation_daily2')
+      .select('"Время отчета"')
+      .not('Время отчета', 'is', null)
 
-      console.log('🧮 Кол-во строк в таблице:', count)
-      if (error) console.error('❌ Ошибка при count:', error)
+    const { data: wagonsRaw, error: errWagons } = await supabase
+      .from('Dislocation_daily2')
+      .select('"Номер вагона"')
+      .not('Номер вагона', 'is', null)
 
-      const { data: timesRaw, error: errTimes } = await supabase
-        .from('Dislocation_daily2')
-        .select('"Время отчета"')
-        .not('Время отчета', 'is', null)
-        .order('Время отчета', { ascending: true })
-
-
-      const { data: wagonsRaw, error: errWagons } = await supabase
-        .from('Dislocation_daily2')
-        .select('"Номер вагона"')
-        .not('Номер вагона', 'is', null)
-        .order('Номер вагона', { ascending: true })
-
-
-      if (errTimes || errWagons) {
-        console.error('❌ Ошибка запроса:', errTimes || errWagons)
-        return
-      }
-
-      console.log('🧾 Всего времен:', timesRaw.length)
-      console.log('🧾 Всего вагонов:', wagonsRaw.length)
-
-      const times = Array.from(new Set(
-        (timesRaw || [])
-          .map(row => row['Время отчета'])
-          .filter(Boolean)
-          .map(t => t.slice(0, 5))
-      ))
-
-      const wagons = Array.from(new Set(
-        (wagonsRaw || [])
-          .map(row => row['Номер вагона'])
-          .filter(Boolean)
-      ))
-
-      console.log('⏱ Времена (уникальные):', times)
-      console.log('🚃 Вагоны (уникальные):', wagons)
-
-      setReportTimes(times)
-      setWagonNumbers(wagons)
-    } catch (err) {
-      console.error('❌ Ошибка выполнения loadOptions:', err)
+    if (errTimes || errWagons) {
+      console.error('❌ Ошибка запроса:', errTimes || errWagons)
+      return
     }
+
+    const times = Array.from(new Set(
+      timesRaw
+        .map(row => row['Время отчета'])
+        .filter(t => typeof t === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(t)) // строгая проверка формата
+        .map(t => t.slice(0, 5)) // нормализуем до HH:mm
+    ))
+
+    const wagons = Array.from(new Set(
+      wagonsRaw
+        .map(row => row['Номер вагона'])
+        .filter(w => !!w && w !== 'null')
+    ))
+
+    console.log('⏱ Времена (уникальные):', times)
+    console.log('🚃 Вагоны (уникальные):', wagons)
+
+    setReportTimes(times)
+    setWagonNumbers(wagons)
+  } catch (err) {
+    console.error('❌ Ошибка выполнения loadOptions:', err)
   }
+}
+
 
   async function fetchData() {
     let query = supabase

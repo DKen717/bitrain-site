@@ -184,7 +184,7 @@ export default function Home() {
                 <td>{row['Дата отчета'] ? dayjs(row['Дата отчета']).format('DD.MM.YYYY') : ''}</td>
                 <td>{row['Время отчета']}</td>
                 <td>{row['Номер вагона']}</td>
-                <td>{row['Дата совершения операции'] ? dayjs(row['Дата совершения операции'],'YYYY-MM-DD HH:mm').format('DD.MM.YYYY HH:mm'): ''}</td>
+                <td>{row['Дата совершения операции'] ? dayjs(row['Дата совершения операции'],'YYYY-MM-DD H:mm').format('DD.MM.YYYY HH:mm'): ''}</td>
                 <td>{row['Станция операции']}</td>
                 <td>{row['Станция отправления']}</td>
                 <td>{row['Станция назначения']}</td>

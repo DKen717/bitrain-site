@@ -34,13 +34,13 @@ export default function Home() {
     try {
       const { data: timesRaw } = await supabase
         .from('Dislocation_daily2')
-        .select('Время отчета')
+        .select('"Время отчета"')
         .not('Время отчета', 'is', null)
         .range(0, 30000)
 
       const { data: wagonsRaw } = await supabase
         .from('Dislocation_daily2')
-        .select('Номер вагона')
+        .select('"Номер вагона"')
         .not('Номер вагона', 'is', null)
         .range(0, 100000)
 
@@ -66,7 +66,7 @@ export default function Home() {
         "Дата совершения операции",
         "Дата отчета",
         "Время отчета",
-        "Станция операция",
+        "Станция операции",
         "Станция отправления",
         "Станция назначения",
         "Наименование операции",

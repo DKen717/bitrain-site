@@ -48,13 +48,15 @@ export default function Home() {
         .from('Dislocation_daily2')
         .select('"Время отчета"')
         .not('Время отчета', 'is', null)
-        .limit(5000)
+        .order('Время отчета', { ascending: true })
+
 
       const { data: wagonsRaw, error: errWagons } = await supabase
         .from('Dislocation_daily2')
         .select('"Номер вагона"')
         .not('Номер вагона', 'is', null)
-        .limit(5000)
+        .order('Номер вагона', { ascending: true })
+
 
       if (errTimes || errWagons) {
         console.error('❌ Ошибка запроса:', errTimes || errWagons)

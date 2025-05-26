@@ -39,15 +39,15 @@ export default function Home() {
   try {
     const { data: timesRaw, error: errTimes } = await supabase
       .from('Dislocation_daily2')
-      .select('distinct("Время отчета")')
+      .select('("Время отчета")')
       .not('Время отчета', 'is', null)
-      .limit(10000)
+      .range(0, 30000)
 
     const { data: wagonsRaw, error: errWagons } = await supabase
       .from('Dislocation_daily2')
-      .select('distinct"Номер вагона"')
+      .select('"Номер вагона"')
       .not('Номер вагона', 'is', null)
-      .limit(10000)
+      .range(0, 30000)
 
     if (errTimes || errWagons) {
       console.error('❌ Ошибка запроса:', errTimes || errWagons)

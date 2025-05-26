@@ -49,24 +49,25 @@ export default function Home() {
     }
   
     const times = Array.from(new Set(
-      allTimesRaw
+      (allTimesRaw || [])
         .map(row => row['Время отчета'])
         .filter(t => !!t && t !== 'null' && t !== '')
-        .map(t => t.slice(0, 5)) // HH:mm
+        .map(t => t.slice(0, 5))
     ))
   
     const wagons = Array.from(new Set(
-      allWagonsRaw
+      (allWagonsRaw || [])
         .map(row => row['Номер вагона'])
         .filter(w => !!w && w !== 'null' && w !== '')
     ))
   
-    console.log("⏱ Времена (уникальные):", times)
-    console.log("🚃 Вагоны (уникальные):", wagons)
+    console.log('⏱ Времена (уникальные):', times)
+    console.log('🚃 Вагоны (уникальные):', wagons)
   
     setReportTimes(times)
     setWagonNumbers(wagons)
   }
+
 
 
     async function fetchData() {

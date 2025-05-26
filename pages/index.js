@@ -40,13 +40,13 @@ export default function Home() {
     const { data: timesRaw, error: errTimes } = await supabase
       .from('Dislocation_daily2')
       .select('"Время отчета"')
-      .not('Время отчета', 'is', null)
+      //.not('Время отчета', 'is', null)
       .limit(250000)
 
     const { data: wagonsRaw, error: errWagons } = await supabase
       .from('Dislocation_daily2')
       .select('"Номер вагона"')
-      .not('Номер вагона', 'is', null)
+      //.not('Номер вагона', 'is', null)
       .limit(250000)
 
     if (errTimes || errWagons) {

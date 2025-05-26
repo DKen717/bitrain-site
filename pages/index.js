@@ -33,12 +33,12 @@ export default function Home() {
     try {
       const { data: timesRaw, error: errTimes } = await supabase
         .from('Dislocation_daily2')
-        .select('Время отчета', { distinct: true })
+        .select('"Время отчета"', { distinct: true })
         .not('Время отчета', 'is', null)
 
       const { data: wagonsRaw, error: errWagons } = await supabase
         .from('Dislocation_daily2')
-        .select('Номер вагона', { distinct: true })
+        .select('"Номер вагона"', { distinct: true })
         .not('Номер вагона', 'is', null)
 
       if (errTimes || errWagons) {

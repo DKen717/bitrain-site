@@ -31,27 +31,22 @@ export default function Home() {
   async function loadOptions() {
     const { data: timesRaw } = await supabase
       .from('Dislocation_daily2')
-      .select('"Время отчета"')
+      .select('"Время отчета"', { distinct: true })
       .not('Время отчета', 'is', null)
       .limit(10000)
 
     const { data: wagonsRaw } = await supabase
       .from('Dislocation_daily2')
-      .select('"Номер вагона"')
+      .select('"Номер вагона"', { distinct: true })
       .not('Номер вагона', 'is', null)
-      .limit(10000)
+      .limit(1000)
 
-    const times = (timesRaw || [])
-      .map(row => row['Время отчета'])
-      .filter(t => !!t && t !== 'null' && t !== '')
-      .map(t => dayjs(`1970-01-01T${t}`).format('HH:mm'))
+const times = timesRaw.map(row => row['Время отчета']).filter(t => !!t)
+const wagons = wagonsRaw.map(row => row['Номер вагона']).filter(w => !!w)
 
-    const wagons = (wagonsRaw || [])
-      .map(row => row['Номер вагона'])
-      .filter(w => !!w && w !== 'null' && w !== '')
+setReportTimes([...new Set(times.map(t => t.slice(0,5)))]) // "HH:MM"
+setWagonNumbers([...new Set(wagons)])
 
-    setReportTimes([...new Set(times)])
-    setWagonNumbers([...new Set(wagons)])
   }
 
     async function fetchData() {

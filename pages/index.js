@@ -52,17 +52,28 @@ export default function Home() {
       return
     }
 
+    console.log('🧾 Всего времен:', timesRaw.length)
+    console.log('🧾 Всего вагонов:', wagonsRaw.length)
+
     const times = Array.from(new Set(
       timesRaw
-        .map(row => row['Время отчета'])
-        .filter(t => typeof t === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(t)) // строгая проверка формата
-        .map(t => t.slice(0, 5)) // нормализуем до HH:mm
+        .map(row => {
+          const t = row['Время отчета']
+          if (!t) return null
+          if (typeof t === 'string') return t.slice(0, 5)
+          if (t instanceof Date) return t.toTimeString().slice(0, 5)
+          return null
+        })
+        .filter(Boolean)
     ))
 
     const wagons = Array.from(new Set(
       wagonsRaw
-        .map(row => row['Номер вагона'])
-        .filter(w => !!w && w !== 'null')
+        .map(row => {
+          const w = row['Номер вагона']
+          return (w !== null && w !== undefined) ? w.toString() : null
+        })
+        .filter(Boolean)
     ))
 
     console.log('⏱ Времена (уникальные):', times)
@@ -74,6 +85,7 @@ export default function Home() {
     console.error('❌ Ошибка выполнения loadOptions:', err)
   }
 }
+
 
 
   async function fetchData() {

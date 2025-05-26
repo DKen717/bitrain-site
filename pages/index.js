@@ -29,17 +29,20 @@ export default function Home() {
   console.log('🟡 ИТОГО wagons:', wagonNumbers)
   }, [reportTimes, wagonNumbers])
 
+
+
+
+  
+  async function loadOptions() {
+    console.log('📥 Загрузка фильтров запущена')
+  
   const { count, error } = await supabase
     .from('Dislocation_daily2')
     .select('*', { count: 'exact', head: true })
   
   console.log('🧮 Кол-во строк в таблице:', count)
   if (error) console.error('❌ Ошибка при count:', error)
-
-
-  
-  async function loadOptions() {
-    console.log('📥 Загрузка фильтров запущена')
+    
   
     try {
       const { data: timesRaw, error: errTimes } = await supabase

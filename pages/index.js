@@ -29,7 +29,15 @@ export default function Home() {
   console.log('🟡 ИТОГО wagons:', wagonNumbers)
   }, [reportTimes, wagonNumbers])
 
+  const { count, error } = await supabase
+    .from('Dislocation_daily2')
+    .select('*', { count: 'exact', head: true })
+  
+  console.log('🧮 Кол-во строк в таблице:', count)
+  if (error) console.error('❌ Ошибка при count:', error)
 
+
+  
   async function loadOptions() {
     console.log('📥 Загрузка фильтров запущена')
   
@@ -37,13 +45,13 @@ export default function Home() {
       const { data: timesRaw, error: errTimes } = await supabase
         .from('Dislocation_daily2')
         .select('"Время отчета"')
-        .not('"Время отчета"', 'is', null)
+        .not('Время отчета', 'is', null)
         .limit(5000)
   
       const { data: wagonsRaw, error: errWagons } = await supabase
         .from('Dislocation_daily2')
         .select('"Номер вагона"')
-        .not('"Номер вагона"', 'is', null)
+        .not('Номер вагона', 'is', null)
         .limit(5000)
   
       if (errTimes || errWagons) {

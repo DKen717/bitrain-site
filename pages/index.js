@@ -32,13 +32,13 @@ export default function Home() {
     const { data: timesRaw } = await supabase
       .from('Dislocation_daily2')
       .select('"Время отчета"', { distinct: true })
-      .not('Время отчета', 'is', null)
+      .not('"Время отчета"', 'is', null)
       .limit(10000)
 
     const { data: wagonsRaw } = await supabase
       .from('Dislocation_daily2')
       .select('"Номер вагона"', { distinct: true })
-      .not('Номер вагона', 'is', null)
+      .not('"Номер вагона"', 'is', null)
       .limit(1000)
 
 const times = timesRaw.map(row => row['Время отчета']).filter(t => !!t)

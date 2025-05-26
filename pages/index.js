@@ -32,7 +32,8 @@ export default function Home() {
 
   useEffect(() => {
     fetchData()
-  }, [fromDate, toDate, selectedTimes, selectedWagons, workingStatus, page])
+  }, [page])
+
 
   async function loadOptions() {
     const { data: timesRaw } = await supabase
@@ -129,6 +130,17 @@ export default function Home() {
           InputLabelProps={{ shrink: true }}
           sx={{ minWidth: 160 }}
         />
+                  <Button
+            onClick={() => {
+              setPage(1)
+              fetchData()
+            }}
+            variant="contained"
+            color="primary"
+          >
+            🔍 Поиск
+          </Button>
+
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>Время отчета</InputLabel>
           <Select

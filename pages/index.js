@@ -70,19 +70,26 @@ export default function Home() {
         "Тип вагона",
         "Порожний/груженный",
         "Рабочий/нерабочий"
-      `)
+        `, { count: 'exact' })
 
-    if (fromDate) query = query.gte('Дата отчета', fromDate)
-    if (toDate) query = query.lte('Дата отчета', toDate)
-    if (selectedTimes.length > 0) query = query.in('Время отчета', selectedTimes)
-    if (selectedWagons.length > 0) query = query.in('Номер вагона', selectedWagons)
-    if (workingStatus) query = query.eq('Рабочий/нерабочий', workingStatus)
-
-    const response = await query
-    if (response.error) {
-      console.error('❌ Ошибка загрузки:', response.error)
-      return
-    }
+      if (fromDate) query = query.gte('Дата отчета', fromDate)
+      if (toDate) query = query.lte('Дата отчета', toDate)
+      if (selectedTimes.length > 0) {
+        const formattedTimes = selectedTimes.map(t => `${t}:00`)
+        query = query.in('Время отчета', formattedTimes)
+      }
+      if (selectedWagons.length > 0) {
+        query = query.in('Номер вагона', selectedWagons)
+      }
+      if (workingStatus) {
+        query = query.eq('Рабочий/нерабочий', workingStatus)
+      }
+      
+      // пагинация
+      query = query.range((page - 1) * pageSize, page * pageSize - 1)
+      
+      const { data, count, error } = await query
+    
     const allData = response.data
 
 

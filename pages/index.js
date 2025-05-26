@@ -79,8 +79,6 @@ export default function Home() {
     if (workingStatus) query = query.eq('Рабочий/нерабочий', workingStatus)
 
     const { data, count } = await query
-    .range((page - 1) * pageSize, page * pageSize - 1)
-    .select('*', { count: 'estimated' })
 
 
     if (error) {

@@ -179,10 +179,10 @@ export default function Home() {
             data.map((row, idx) => (
               <tr key={idx}>
                 <td>{(page - 1) * pageSize + idx + 1}</td>
-                <td>{row['Дата отчета']}</td>
+                <td>{row['Дата отчета'] ? dayjs(row['Дата отчета']).format('DD.MM.YYYY') : ''}</td>
                 <td>{row['Время отчета']}</td>
                 <td>{row['Номер вагона']}</td>
-                <td>{row['Дата совершения операции']}</td>
+                <td>{row['Дата совершения операции'] ? dayjs(row['Дата совершения операции']).format('DD.MM.YYYY HH:mm') : ''}</td>
                 <td>{row['Станция операции']}</td>
                 <td>{row['Станция отправления']}</td>
                 <td>{row['Станция назначения']}</td>

@@ -28,52 +28,45 @@ export default function Home() {
     loadOptions()
   }, [])
 
-      async function loadOptions() {
-      console.log('📥 Загрузка фильтров запущена')
-    
-      try {
-        const { data: allTimesRaw, error: timeError } = await supabase
-          .from('Dislocation_daily2')
-          .select('"Время отчета"')
-          .not('Время отчета', 'is', null)
-          .limit(10000)
-    
-        if (timeError) {
-          console.error('❌ Ошибка загрузки времени:', timeError)
-        }
-    
-        const { data: allWagonsRaw, error: wagonError } = await supabase
-          .from('Dislocation_daily2')
-          .select('"Номер вагона"')
-          .not('Номер вагона', 'is', null)
-          .limit(10000)
-    
-        if (wagonError) {
-          console.error('❌ Ошибка загрузки вагонов:', wagonError)
-        }
-    
-        const times = (allTimesRaw || [])
-          .map(row => row['Время отчета'])
-          .filter(t => !!t && t !== 'null' && t !== '')
-          .map(t => t.slice(0, 5))
-    
-        const wagons = (allWagonsRaw || [])
-          .map(row => row['Номер вагона'])
-          .filter(w => !!w && w !== 'null' && w !== '')
-    
-        console.log("⏱ Времена:", times)
-        console.log("🚃 Вагоны:", wagons)
-    
-        setReportTimes([...new Set(times)])
-        setWagonNumbers([...new Set(wagons)])
-      } catch (err) {
-        console.error('❌ Критическая ошибка в loadOptions:', err)
-      }
+  async function loadOptions() {
+    console.log('📥 Загрузка фильтров запущена')
+  
+    const { data: allTimesRaw, error: timeError } = await supabase
+      .from('Dislocation_daily2')
+      .select('"Время отчета"')
+      .not('Время отчета', 'is', null)
+      .limit(10000)
+  
+    const { data: allWagonsRaw, error: wagonError } = await supabase
+      .from('Dislocation_daily2')
+      .select('"Номер вагона"')
+      .not('Номер вагона', 'is', null)
+      .limit(10000)
+  
+    if (timeError || wagonError) {
+      console.error('❌ Ошибка загрузки фильтров', timeError || wagonError)
+      return
     }
-
-
-console.log("⏱ Времена:", reportTimes)
-console.log("🚃 Вагоны:", wagonNumbers)
+  
+    const times = Array.from(new Set(
+      allTimesRaw
+        .map(row => row['Время отчета'])
+        .filter(t => !!t && t !== 'null' && t !== '')
+        .map(t => t.slice(0, 5)) // HH:mm
+    ))
+  
+    const wagons = Array.from(new Set(
+      allWagonsRaw
+        .map(row => row['Номер вагона'])
+        .filter(w => !!w && w !== 'null' && w !== '')
+    ))
+  
+    console.log("⏱ Времена (уникальные):", times)
+    console.log("🚃 Вагоны (уникальные):", wagons)
+  
+    setReportTimes(times)
+    setWagonNumbers(wagons)
+  }
 
 
     async function fetchData() {

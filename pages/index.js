@@ -78,7 +78,10 @@ export default function Home() {
     if (selectedWagons.length > 0) query = query.in('Номер вагона', selectedWagons)
     if (workingStatus) query = query.eq('Рабочий/нерабочий', workingStatus)
 
-    const { data: allData, error } = await query
+    const { data, count } = await query
+    .range((page - 1) * pageSize, page * pageSize - 1)
+    .select('*', { count: 'estimated' })
+
 
     if (error) {
       console.error('❌ Ошибка загрузки:', error)

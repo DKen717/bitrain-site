@@ -20,20 +20,13 @@ export default function Home() {
   const [selectedWagons, setSelectedWagons] = useState([])
   const [workingStatus, setWorkingStatus] = useState('')
   const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(null)
 
   const pageSize = 50
 
   useEffect(() => {
-    const today = dayjs().format('YYYY-MM-DD')
-    setFromDate(today)
-    setToDate(today)
     loadOptions()
   }, [])
-
-  useEffect(() => {
-    fetchData()
-  }, [page])
-
 
   async function loadOptions() {
     const { data: timesRaw } = await supabase
@@ -78,8 +71,6 @@ export default function Home() {
         "Порожний/груженный",
         "Рабочий/нерабочий"
       `)
-      .order('Дата отчета', { ascending: false })
-      .order('Время отчета', { ascending: false })
 
     if (fromDate) query = query.gte('Дата отчета', fromDate)
     if (toDate) query = query.lte('Дата отчета', toDate)
@@ -87,26 +78,27 @@ export default function Home() {
     if (selectedWagons.length > 0) query = query.in('Номер вагона', selectedWagons)
     if (workingStatus) query = query.eq('Рабочий/нерабочий', workingStatus)
 
-    const from = (page - 1) * pageSize
-    const to = from + pageSize - 1
-
-    const { data, error } = await query.range(from, to)
+    const { data: allData, error } = await query
 
     if (error) {
       console.error('❌ Ошибка загрузки:', error)
     } else {
-      setData(data)
+      setTotal(allData.length)
+      const from = (page - 1) * pageSize
+      const to = from + pageSize
+      setData(allData.slice(from, to))
     }
   }
 
   function clearFilters() {
-    const today = dayjs().format('YYYY-MM-DD')
-    setFromDate(today)
-    setToDate(today)
+    setFromDate('')
+    setToDate('')
     setSelectedTimes([])
     setSelectedWagons([])
     setWorkingStatus('')
     setPage(1)
+    setData([])
+    setTotal(null)
   }
 
   return (
@@ -114,80 +106,40 @@ export default function Home() {
       <h1>Aiway Logistic — отчет</h1>
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-        <TextField
-          label="Дата от"
-          type="date"
-          value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 160 }}
-        />
-        <TextField
-          label="Дата до"
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 160 }}
-        />
-                  <Button
-            onClick={() => {
-              setPage(1)
-              fetchData()
-            }}
-            variant="contained"
-            color="primary"
-          >
-            🔍 Поиск
-          </Button>
-
+        <TextField label="Дата от" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+        <TextField label="Дата до" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+        
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>Время отчета</InputLabel>
-          <Select
-            multiple
-            value={selectedTimes}
-            onChange={(e) => setSelectedTimes(e.target.value)}
-            input={<OutlinedInput label="Время отчета" />}
-            renderValue={(selected) => (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {selected.map((value) => <Chip key={value} label={value} />)}
-              </Box>
-            )}
-          >
-            {reportTimes.map((time) => (
-              <MenuItem key={time} value={time}>{time}</MenuItem>
-            ))}
+          <Select multiple value={selectedTimes} onChange={(e) => setSelectedTimes(e.target.value)} input={<OutlinedInput label="Время отчета" />}
+            renderValue={(selected) => (<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>{selected.map((value) => <Chip key={value} label={value} />)}</Box>)}>
+            {reportTimes.map((time) => (<MenuItem key={time} value={time}>{time}</MenuItem>))}
           </Select>
         </FormControl>
+
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>Рабочий/нерабочий</InputLabel>
-          <Select
-            value={workingStatus}
-            onChange={(e) => setWorkingStatus(e.target.value)}
-            input={<OutlinedInput label="Рабочий/нерабочий" />}
-          >
+          <Select value={workingStatus} onChange={(e) => setWorkingStatus(e.target.value)} input={<OutlinedInput label="Рабочий/нерабочий" />}>
             <MenuItem value="">Все</MenuItem>
             <MenuItem value="Рабочий">Рабочий</MenuItem>
             <MenuItem value="Нерабочий">Нерабочий</MenuItem>
           </Select>
         </FormControl>
-        <Autocomplete
-          multiple
-          options={wagonNumbers}
-          getOptionLabel={(opt) => opt.toString()}
-          value={selectedWagons}
-          onChange={(event, newValue) => {
-            setSelectedWagons(newValue)
-            setPage(1)
-          }}
-          filterSelectedOptions
-          renderInput={(params) => (
-            <TextField {...params} label="Номера вагонов" placeholder="Вводите номер" />
-          )}
-          sx={{ minWidth: 300 }}
-        />
+
+        <Autocomplete multiple options={wagonNumbers} getOptionLabel={(opt) => opt.toString()} value={selectedWagons}
+          onChange={(event, newValue) => { setSelectedWagons(newValue); setPage(1) }}
+          filterSelectedOptions renderInput={(params) => (<TextField {...params} label="Номера вагонов" placeholder="Вводите номер" />)}
+          sx={{ minWidth: 300 }} />
+
+        <Button onClick={() => { setPage(1); fetchData() }} variant="contained" color="primary">🔍 Поиск</Button>
         <Button onClick={clearFilters} variant="outlined" color="secondary">🧹 Очистить</Button>
       </Box>
+
+      {total !== null && (
+        <Box sx={{ marginBottom: '1rem' }}>
+          <strong>🔎 Найдено строк: {total}</strong>
+        </Box>
+      )}
 
       <table border="1" cellPadding="6" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead style={{ backgroundColor: '#f0f0f0' }}>
@@ -232,11 +184,13 @@ export default function Home() {
         </tbody>
       </table>
 
-      <Box sx={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>
-        <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>⬅ Пред.</button>
-        <span style={{ margin: '0 1rem' }}>Страница {page}</span>
-        <button onClick={() => setPage((p) => p + 1)} disabled={data.length < pageSize}>След. ➡</button>
-      </Box>
+      {total !== null && (
+        <Box sx={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>
+          <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>⬅ Пред.</button>
+          <span style={{ margin: '0 1rem' }}>Страница {page}</span>
+          <button onClick={() => setPage((p) => p + 1)} disabled={(page * pageSize) >= total}>След. ➡</button>
+        </Box>
+      )}
     </Box>
   )
 }

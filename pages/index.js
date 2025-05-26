@@ -51,14 +51,14 @@ export default function Home() {
     const times = Array.from(new Set(
       (allTimesRaw || [])
         .map(row => row['Время отчета'])
-    //    .filter(t => !!t && t !== 'null' && t !== '')
-    //    .map(t => t.slice(0, 5))
+        .filter(t => !!t && t !== 'null' && t !== '')
+        .map(t => t.slice(0, 5))
     ))
   
     const wagons = Array.from(new Set(
       (allWagonsRaw || [])
-    //    .map(row => row['Номер вагона'])
-    //    .filter(w => !!w && w !== 'null' && w !== '')
+        .map(row => row['Номер вагона'])
+        .filter(w => !!w && w !== 'null' && w !== '')
     ))
   
     console.log('⏱ Времена (уникальные):', times)

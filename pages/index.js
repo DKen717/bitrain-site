@@ -19,10 +19,9 @@ export default function Home() {
   const [wagonNumbers, setWagonNumbers] = useState([])
   const [selectedWagons, setSelectedWagons] = useState([])
   const [workingStatus, setWorkingStatus] = useState('')
-  const [filterWagon, setFilterWagon] = useState('')
-  const [filterStation, setFilterStation] = useState('')
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   const pageSize = 50
 
@@ -32,33 +31,41 @@ export default function Home() {
 
   async function loadOptions() {
     try {
-      const { data: timesRaw } = await supabase
+      const { data: timesRaw, error: errTimes } = await supabase
         .from('Dislocation_daily2')
-        .select('"Время отчета"')
+        .select('Время отчета', { distinct: true })
         .not('Время отчета', 'is', null)
-        .range(0, 30000)
 
-      const { data: wagonsRaw } = await supabase
+      const { data: wagonsRaw, error: errWagons } = await supabase
         .from('Dislocation_daily2')
-        .select('"Номер вагона"')
+        .select('Номер вагона', { distinct: true })
         .not('Номер вагона', 'is', null)
-        .range(0, 100000)
 
-      const times = Array.from(new Set(timesRaw.map(row => {
+      if (errTimes || errWagons) {
+        console.error('Ошибка загрузки фильтров:', errTimes || errWagons)
+        return
+      }
+
+      const times = timesRaw.map(row => {
         const t = row['Время отчета']
-        return typeof t === 'string' ? t.slice(0, 5) : t instanceof Date ? t.toTimeString().slice(0, 5) : null
-      }).filter(Boolean)))
+        if (!t) return null
+        if (typeof t === 'string') return t.slice(0, 5)
+        if (t instanceof Date) return t.toTimeString().slice(0, 5)
+        return null
+      }).filter(Boolean)
 
-      const wagons = Array.from(new Set(wagonsRaw.map(row => row['Номер вагона']?.toString()).filter(Boolean)))
+      const wagons = wagonsRaw
+        .map(row => row['Номер вагона']?.toString())
+        .filter(Boolean)
 
-      setReportTimes(times)
-      setWagonNumbers(wagons)
+      setReportTimes(Array.from(new Set(times)))
+      setWagonNumbers(Array.from(new Set(wagons)))
     } catch (err) {
-      console.error('Ошибка загрузки фильтров:', err)
+      console.error('Ошибка выполнения loadOptions:', err)
     }
   }
 
-  async function fetchData() {
+  function buildQuery() {
     let query = supabase
       .from('Dislocation_daily2')
       .select(`
@@ -78,23 +85,38 @@ export default function Home() {
 
     if (fromDate) query = query.gte('Дата отчета', fromDate)
     if (toDate) query = query.lte('Дата отчета', toDate)
-    if (selectedTimes.length > 0) query = query.in('Время отчета', selectedTimes.map(t => `${t}:00`))
-    if (selectedWagons.length > 0) query = query.in('Номер вагона', selectedWagons)
-    if (workingStatus) query = query.eq('Рабочий/нерабочий', workingStatus)
-    if (filterWagon) query = query.ilike('Номер вагона', `%${filterWagon}%`)
-    if (filterStation) query = query.ilike('Станция операция', `%${filterStation}%`)
+    if (selectedTimes.length > 0) {
+      const formattedTimes = selectedTimes.map(t => `${t}:00`)
+      query = query.in('Время отчета', formattedTimes)
+    }
+    if (selectedWagons.length > 0) {
+      query = query.in('Номер вагона', selectedWagons)
+    }
+    if (workingStatus) {
+      query = query.eq('Рабочий/нерабочий', workingStatus)
+    }
 
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
-    query = query.range(from, to)
+    return query.range(from, to)
+  }
 
-    const { data, count, error } = await query
+  async function fetchData() {
+    setLoading(true)
+    try {
+      const query = buildQuery()
+      const { data, count, error } = await query
 
-    if (error) {
-      console.error('Ошибка загрузки:', error)
-    } else {
-      setData(data)
-      setTotal(count)
+      if (error) {
+        console.error('Ошибка загрузки:', error)
+        setData([])
+        setTotal(null)
+      } else {
+        setData(data)
+        setTotal(count)
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -104,20 +126,18 @@ export default function Home() {
     setSelectedTimes([])
     setSelectedWagons([])
     setWorkingStatus('')
-    setFilterWagon('')
-    setFilterStation('')
     setPage(1)
     setData([])
     setTotal(null)
   }
 
   return (
-    <Box sx={{ padding: '2rem' }}>
+    <Box sx={{ padding: '2rem', fontFamily: 'Arial' }}>
       <h1>Aiway Logistic — отчет</h1>
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-        <TextField label="Дата от" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} InputLabelProps={{ shrink: true }} />
-        <TextField label="Дата до" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} InputLabelProps={{ shrink: true }} />
+        <TextField label="Дата от" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+        <TextField label="Дата до" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
 
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>Время отчета</InputLabel>
@@ -141,8 +161,10 @@ export default function Home() {
           filterSelectedOptions renderInput={(params) => (<TextField {...params} label="Номера вагонов" placeholder="Вводите номер" />)}
           sx={{ minWidth: 300 }} />
 
-        <Button onClick={() => { setPage(1); fetchData() }} variant="contained">🔍 Поиск</Button>
-        <Button onClick={clearFilters} variant="outlined">🧹 Очистить</Button>
+        <Button onClick={() => { setPage(1); fetchData() }} variant="contained" color="primary" disabled={loading}>
+          {loading ? 'Загрузка...' : '🔍 Поиск'}
+        </Button>
+        <Button onClick={clearFilters} variant="outlined" color="secondary">🧹 Очистить</Button>
       </Box>
 
       {total !== null && (
@@ -168,27 +190,6 @@ export default function Home() {
             <th>Порожний/груженный</th>
             <th>Рабочий/нерабочий</th>
           </tr>
-          <tr>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th>
-              <TextField variant="standard" placeholder="Фильтр" value={filterWagon}
-                onChange={(e) => { setFilterWagon(e.target.value); setPage(1) }} />
-            </th>
-            <th></th>
-            <th></th>
-            <th>
-              <TextField variant="standard" placeholder="Фильтр" value={filterStation}
-                onChange={(e) => { setFilterStation(e.target.value); setPage(1) }} />
-            </th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-          </tr>
         </thead>
         <tbody>
           {data.length === 0 ? (
@@ -202,7 +203,7 @@ export default function Home() {
                 <td>{row['Номер вагона']}</td>
                 <td>{row['Дата совершения операции']}</td>
                 <td>{row['Наименование операции']}</td>
-                <td>{row['Станция операция']}</td>
+                <td>{row['Станция операции']}</td>
                 <td>{row['Станция отправления']}</td>
                 <td>{row['Станция назначения']}</td>
                 <td>{row['Наименование груза']}</td>
@@ -217,9 +218,9 @@ export default function Home() {
 
       {total !== null && (
         <Box sx={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>
-          <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>⬅ Пред.</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>⬅ Пред.</button>
           <span style={{ margin: '0 1rem' }}>Страница {page}</span>
-          <button onClick={() => setPage((p) => p + 1)} disabled={(page * pageSize) >= total}>След. ➡</button>
+          <button onClick={() => setPage(p => p + 1)} disabled={(page * pageSize) >= total}>След. ➡</button>
         </Box>
       )}
     </Box>

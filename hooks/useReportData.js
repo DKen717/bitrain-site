@@ -61,6 +61,9 @@ export function useReportData(filters, page, pageSize) {
           query = query.lte('Дней без операции', Number(filters.maxIdleDays))
       }
 
+      if (filters.selectedTenants.length > 0) {
+          query = query.in('Арендатор', filters.selectedTenants)
+      }
 
       const from = (page - 1) * pageSize
       const to = from + pageSize - 1

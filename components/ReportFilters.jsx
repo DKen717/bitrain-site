@@ -14,25 +14,22 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
     loadFilterOptions()
   }, [])
 
-    const loadFilterOptions = async () => {
+      const loadFilterOptions = async () => {
     try {
       const { data: timesRaw, error: timeErr } = await supabase
         .from('Dislocation_daily2')
         .select('"Время отчета"')
         .not('Время отчета', 'is', null)
+        .limit(10000)
   
       const { data: wagonsRaw, error: wagonErr } = await supabase
         .from('Dislocation_daily2')
         .select('"Номер вагона"')
         .not('Номер вагона', 'is', null)
+        .limit(10000)
   
       if (timeErr || wagonErr) {
         console.error('📛 Supabase error:', timeErr || wagonErr)
-        return
-      }
-  
-      if (!timesRaw || !wagonsRaw) {
-        console.error('⚠️ timesRaw или wagonsRaw равны null')
         return
       }
   
@@ -45,12 +42,12 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
           return null
         })
         .filter(Boolean)
-      )]
+      )].sort((a, b) => a.localeCompare(b))  // ⬅️ сортировка времени
   
       const wagons = [...new Set(wagonsRaw
         .map(row => row['Номер вагона']?.toString())
         .filter(Boolean)
-      )]
+      )].sort((a, b) => Number(a) - Number(b))  // ⬅️ сортировка номеров по возрастанию
   
       setReportTimes(times)
       setWagonNumbers(wagons)
@@ -58,6 +55,7 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
       console.error('Ошибка выполнения loadFilterOptions:', err)
     }
   }
+
 
 
   return (

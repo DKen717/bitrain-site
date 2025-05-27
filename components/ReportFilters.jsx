@@ -14,35 +14,51 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
     loadFilterOptions()
   }, [])
 
-  const loadFilterOptions = async () => {
+    const loadFilterOptions = async () => {
     try {
-      const { data: timesRaw } = await supabase
+      const { data: timesRaw, error: timeErr } = await supabase
         .from('Dislocation_daily2')
-        .select('Время отчета')
+        .select('"Время отчета"')
         .not('Время отчета', 'is', null)
-      
-      const uniqueTimes = [...new Set(timesRaw.map(row => {
-        const t = row['Время отчета']
-        return typeof t === 'string' ? t.slice(0, 5) : t instanceof Date ? t.toTimeString().slice(0, 5) : null
-      }).filter(Boolean))]
-      setReportTimes(uniqueTimes)
-
-
-      const { data: wagonsRaw } = await supabase
+  
+      const { data: wagonsRaw, error: wagonErr } = await supabase
         .from('Dislocation_daily2')
-        .select('Номер вагона')
+        .select('"Номер вагона"')
         .not('Номер вагона', 'is', null)
-      
-      const uniqueWagons = [...new Set(wagonsRaw.map(row => row['Номер вагона']?.toString()).filter(Boolean))]
-      setWagonNumbers(uniqueWagons)
-
-
-      setReportTimes(Array.from(new Set(times)))
-      setWagonNumbers(Array.from(new Set(wagons)))
+  
+      if (timeErr || wagonErr) {
+        console.error('📛 Supabase error:', timeErr || wagonErr)
+        return
+      }
+  
+      if (!timesRaw || !wagonsRaw) {
+        console.error('⚠️ timesRaw или wagonsRaw равны null')
+        return
+      }
+  
+      const times = [...new Set(timesRaw
+        .map(row => {
+          const t = row['Время отчета']
+          if (!t) return null
+          if (typeof t === 'string') return t.slice(0, 5)
+          if (t instanceof Date) return t.toTimeString().slice(0, 5)
+          return null
+        })
+        .filter(Boolean)
+      )]
+  
+      const wagons = [...new Set(wagonsRaw
+        .map(row => row['Номер вагона']?.toString())
+        .filter(Boolean)
+      )]
+  
+      setReportTimes(times)
+      setWagonNumbers(wagons)
     } catch (err) {
-      console.error('Ошибка загрузки фильтров:', err)
+      console.error('Ошибка выполнения loadFilterOptions:', err)
     }
   }
+
 
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>

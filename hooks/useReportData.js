@@ -26,6 +26,11 @@ export function useReportData(filters, page, pageSize) {
           "Рабочий/нерабочий"
         `, { count: 'exact' })
 
+      // ✅ сортировка от новых к старым
+      query = query
+        .order('Дата отчета', { ascending: false })     // сначала по дате
+        .order('Время отчета', { ascending: false })    // потом по времени
+
       if (filters.fromDate) {
         query = query.gte('Дата отчета', filters.fromDate)
       }

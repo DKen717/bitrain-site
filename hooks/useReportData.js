@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { supabase } from '../src/supabaseClient'
 
 export function useReportData(filters, page, pageSize) {
@@ -7,14 +7,6 @@ export function useReportData(filters, page, pageSize) {
   const [loading, setLoading] = useState(false)
 
   const fetchData = useCallback(async () => {
-    setLoading(true)
-    ...
-  }, [filters, page, pageSize])
-
-  return { data, total, loading, fetchData }
-  }
-
-  const fetchData = async () => {
     setLoading(true)
     try {
       let query = supabase
@@ -74,7 +66,7 @@ export function useReportData(filters, page, pageSize) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters, page, pageSize])
 
   return { data, total, loading, fetchData }
 }

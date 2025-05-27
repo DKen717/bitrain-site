@@ -24,7 +24,8 @@ export default function Home() {
 
   // ⬇️ теперь всё правильно — fetchData уже определён
   useEffect(() => {
-    fetchData()
+    fetchData(console.log('🧪 Фильтр по статусу:', filters.workingStatus)
+)
   }, [page])
 
   const handleSearch = () => {

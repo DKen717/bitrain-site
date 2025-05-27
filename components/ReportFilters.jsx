@@ -18,7 +18,7 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
     try {
       const { data: timesRaw } = await supabase
         .from('Dislocation_daily2')
-        .select('"Время отчета"')
+        .select('Время отчета')
         .not('Время отчета', 'is', null)
       
       const uniqueTimes = [...new Set(timesRaw.map(row => {

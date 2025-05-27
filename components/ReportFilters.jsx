@@ -20,7 +20,13 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         const { data: timesRaw, error: timeErr } = await supabase.rpc('get_unique_times')
         // 🔹 Номера вагонов
         const { data: wagonsRaw, error: wagonErr } = await supabase.rpc('get_unique_wagons')
-    
+        // 📥 Загрузка уникальных арендаторов
+        const { data: tenantsRaw, error: tenantErr } = await supabase.rpc('get_unique_tenants')
+        
+        if (tenantErr) {
+          console.error('❌ Ошибка загрузки арендаторов:', tenantErr)
+          return
+        }
         if (timeErr || wagonErr) {
           console.error('❌ Supabase ошибка:', timeErr || wagonErr)
           return
@@ -44,6 +50,10 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
           .map(row => row['Номер вагона']?.toString())
           .filter(Boolean)
           .sort((a, b) => Number(a) - Number(b))
+        
+        const tenants = Array.from(new Set(
+            tenantsRaw.map(row => row['Арендатор']?.toString()).filter(Boolean)
+          )).sort()
     
         // 🔍 Итог
         console.log('✅ Готовые времена:', times)
@@ -51,6 +61,7 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
     
         setReportTimes(times)
         setWagonNumbers(wagons)
+        setTenantOptions(tenants)
       } catch (err) {
         console.error('❌ Ошибка выполнения loadFilterOptions:', err)
       }
@@ -102,6 +113,13 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         filterSelectedOptions
         renderInput={(params) => (<TextField {...params} label="Номера вагонов" placeholder="Вводите номер" />)}
         size="small" sx={{ minWidth: 300 }} />
+
+      <Autocomplete multiple options={tenantOptions} 
+        value={filters.selectedTenants}
+        onChange={(e, newValue) => setFilters(prev => ({ ...prev, selectedTenants: newValue })) }
+        filterSelectedOptions
+        renderInput={(params) => (<TextField {...params} label="Арендатор" placeholder="Введите" size="small" />)}
+        sx={{ minWidth: 250 }} />
 
       <TextField type="number" label="Дней без операции: от" value={filters.minIdleDays}
         onChange={(e) => setFilters(prev => ({ ...prev, minIdleDays: e.target.value }))}

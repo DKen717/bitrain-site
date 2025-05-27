@@ -44,7 +44,9 @@ const [filters, setFilters] = useState({
       toDate: '',
       selectedTimes: [],
       selectedWagons: [],
-      workingStatus: ''
+      workingStatus: '',
+      minIdleDays: '',  // ➕ от
+      maxIdleDays: ''   // ➕ до
     })
     setPage(1)
     fetchData()

@@ -67,6 +67,15 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         onChange={(e) => setFilters(prev => ({ ...prev, toDate: e.target.value }))}
         InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
 
+      <TextField type="number" label="Дней без операции: от" value={filters.minIdleDays}
+        onChange={(e) => setFilters(prev => ({ ...prev, minIdleDays: e.target.value }))}
+        sx={{ minWidth: 160 }} />
+      
+      <TextField type="number" label="Дней без операции: до" value={filters.maxIdleDays}
+        onChange={(e) => setFilters(prev => ({ ...prev, maxIdleDays: e.target.value }))}
+        sx={{ minWidth: 160 }} />
+
+
       <FormControl sx={{ minWidth: 200 }}>
         <InputLabel>Время отчета</InputLabel>
         <Select multiple value={filters.selectedTimes}

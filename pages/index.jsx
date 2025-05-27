@@ -1,10 +1,3 @@
-import { useState } from 'react'
-import { Box, Typography } from '@mui/material'
-import ReportFilters from '../components/ReportFilters'
-import ReportTable from '../components/ReportTable'
-import Pagination from '../components/Pagination'
-import { useReportData } from '../hooks/useReportData'
-
 export default function Home() {
   const [filters, setFilters] = useState({
     fromDate: '',
@@ -17,12 +10,12 @@ export default function Home() {
   const [page, setPage] = useState(1)
   const pageSize = 100
 
-  useEffect(() => {
-  fetchData()
-}, [page])
-
-  
   const { data, total, loading, fetchData } = useReportData(filters, page, pageSize)
+
+  // ⬇️ теперь всё правильно — fetchData уже определён
+  useEffect(() => {
+    fetchData()
+  }, [page])
 
   const handleSearch = () => {
     setPage(1)
@@ -54,7 +47,6 @@ export default function Home() {
       )}
 
       <ReportTable data={data} loading={loading} page={page} pageSize={pageSize} />
-
       <Pagination page={page} setPage={setPage} total={total} pageSize={pageSize} />
     </Box>
   )

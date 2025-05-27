@@ -15,7 +15,7 @@ export default function Home() {
   })
 
   const [page, setPage] = useState(1)
-  const pageSize = 50
+  const pageSize = 100
 
   const { data, total, loading, fetchData } = useReportData(filters, page, pageSize)
 

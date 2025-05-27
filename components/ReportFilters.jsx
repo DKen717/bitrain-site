@@ -105,11 +105,11 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
 
       <TextField type="number" label="Дней без операции: от" value={filters.minIdleDays}
         onChange={(e) => setFilters(prev => ({ ...prev, minIdleDays: e.target.value }))}
-        sx={{ minWidth: 100 }} />
+        sx={{fontSize: '0.65rem', minWidth: 100 }} />
       
       <TextField type="number" label="Дней без операции: до" value={filters.maxIdleDays}
         onChange={(e) => setFilters(prev => ({ ...prev, maxIdleDays: e.target.value }))}
-        sx={{ minWidth: 100 }} />
+        sx={{fontSize: '0.65rem', minWidth: 100 }} />
 
       <Button onClick={onSearch} variant="contained" color="primary" disabled={loading}>
         {loading ? 'Загрузка...' : '🔍 Поиск'}

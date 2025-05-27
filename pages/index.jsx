@@ -9,13 +9,16 @@ import { useReportData } from '../hooks/useReportData'
 
 
 export default function Home() {
-  const [filters, setFilters] = useState({
-    fromDate: '',
-    toDate: '',
-    selectedTimes: [],
-    selectedWagons: [],
-    workingStatus: ''
-  })
+const today = new Date().toISOString().slice(0, 10)  // формат YYYY-MM-DD
+
+const [filters, setFilters] = useState({
+  fromDate: today,
+  toDate: today,
+  selectedTimes: [],
+  selectedWagons: [],
+  workingStatus: ''
+})
+
 
   const [page, setPage] = useState(1)
   const pageSize = 100

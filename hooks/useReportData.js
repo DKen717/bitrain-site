@@ -53,6 +53,14 @@ export function useReportData(filters, page, pageSize) {
         query = query.eq('"Рабочий/нерабочий"', filters.workingStatus)
       }
 
+      if (filters.minIdleDays) {
+          query = query.gte('Дней без операции', Number(filters.minIdleDays))
+      }
+      if (filters.maxIdleDays) {
+          query = query.lte('Дней без операции', Number(filters.maxIdleDays))
+      }
+
+
       const from = (page - 1) * pageSize
       const to = from + pageSize - 1
       query = query.range(from, to)

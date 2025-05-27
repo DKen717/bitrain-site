@@ -27,6 +27,7 @@ export default function ReportTable({ data, loading, page, pageSize }) {
           <th>Тип вагона</th>
           <th>Порожний/груженный</th>
           <th>Рабочий/нерабочий</th>
+          <th>Дней без операции</th>
         </tr>
       </thead>
       <tbody>
@@ -48,6 +49,7 @@ export default function ReportTable({ data, loading, page, pageSize }) {
               <td>{row['Тип вагона']}</td>
               <td>{row['Порожний/груженный']}</td>
               <td>{row['Рабочий/нерабочий']}</td>
+              <td>{row['Дней без операции']}</td>
             </tr>
           ))
         )}

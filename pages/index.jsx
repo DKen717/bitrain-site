@@ -1,3 +1,13 @@
+import { useState, useEffect } from 'react'  // ✅ исправленный импорт
+import { Box, Typography } from '@mui/material'
+import ReportFilters from '../components/ReportFilters'
+import ReportTable from '../components/ReportTable'
+import Pagination from '../components/Pagination'
+import { useReportData } from '../hooks/useReportData'
+
+
+
+
 export default function Home() {
   const [filters, setFilters] = useState({
     fromDate: '',

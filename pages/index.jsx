@@ -53,7 +53,7 @@ const [filters, setFilters] = useState({
   }
 
   return (
-    <Box sx={{ padding: '2rem', fontFamily: 'Arial',fontSize: '0.55rem' }}>
+    <Box sx={{ padding: '2rem', fontFamily: 'Arial',fontSize: '0.65rem' }}>
       <Typography variant="h4" gutterBottom>Aiway Logistic — отчет</Typography>
 
       <ReportFilters filters={filters} setFilters={setFilters} onSearch={handleSearch} onClear={handleClear} loading={loading} />

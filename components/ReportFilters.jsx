@@ -94,13 +94,7 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         </Select>
       </FormControl>
 
-      <TextField type="number" label="Дней без операции: от" value={filters.minIdleDays}
-        onChange={(e) => setFilters(prev => ({ ...prev, minIdleDays: e.target.value }))}
-        sx={{ minWidth: 100 }} />
-      
-      <TextField type="number" label="Дней без операции: до" value={filters.maxIdleDays}
-        onChange={(e) => setFilters(prev => ({ ...prev, maxIdleDays: e.target.value }))}
-        sx={{ minWidth: 100 }} />
+
 
       <Autocomplete multiple options={wagonNumbers} getOptionLabel={(opt) => opt.toString()}
         value={filters.selectedWagons}
@@ -108,6 +102,14 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         filterSelectedOptions
         renderInput={(params) => (<TextField {...params} label="Номера вагонов" placeholder="Вводите номер" />)}
         sx={{ minWidth: 300 }} />
+
+      <TextField type="number" label="Дней без операции: от" value={filters.minIdleDays}
+        onChange={(e) => setFilters(prev => ({ ...prev, minIdleDays: e.target.value }))}
+        sx={{ minWidth: 100 }} />
+      
+      <TextField type="number" label="Дней без операции: до" value={filters.maxIdleDays}
+        onChange={(e) => setFilters(prev => ({ ...prev, maxIdleDays: e.target.value }))}
+        sx={{ minWidth: 100 }} />
 
       <Button onClick={onSearch} variant="contained" color="primary" disabled={loading}>
         {loading ? 'Загрузка...' : '🔍 Поиск'}

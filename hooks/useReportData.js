@@ -44,7 +44,7 @@ export function useReportData(filters, page, pageSize) {
       }
 
       if (filters.workingStatus) {
-        query = query.eq('Рабочий/нерабочий', filters.workingStatus)
+        query = query.eq('"Рабочий/нерабочий"', filters.workingStatus)
       }
 
       const from = (page - 1) * pageSize

@@ -9,6 +9,7 @@ import { supabase } from '../src/supabaseClient'
 export default function ReportFilters({ filters, setFilters, onSearch, onClear, loading }) {
   const [reportTimes, setReportTimes] = useState([])
   const [wagonNumbers, setWagonNumbers] = useState([])
+  const [tenantOptions, setTenantOptions] = useState([])
 
   useEffect(() => {
     loadFilterOptions()

@@ -18,25 +18,24 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
     try {
       const { data: timesRaw } = await supabase
         .from('Dislocation_daily2')
-        .select('"Время отчета"', { distinct: true })
+        .select('"Время отчета"')
         .not('Время отчета', 'is', null)
+      
+      const uniqueTimes = [...new Set(timesRaw.map(row => {
+        const t = row['Время отчета']
+        return typeof t === 'string' ? t.slice(0, 5) : t instanceof Date ? t.toTimeString().slice(0, 5) : null
+      }).filter(Boolean))]
+      setReportTimes(uniqueTimes)
+
 
       const { data: wagonsRaw } = await supabase
         .from('Dislocation_daily2')
-        .select('"Номер вагона"', { distinct: true })
+        .select('Номер вагона')
         .not('Номер вагона', 'is', null)
+      
+      const uniqueWagons = [...new Set(wagonsRaw.map(row => row['Номер вагона']?.toString()).filter(Boolean))]
+      setWagonNumbers(uniqueWagons)
 
-      const times = timesRaw.map(row => {
-        const t = row['Время отчета']
-        if (!t) return null
-        if (typeof t === 'string') return t.slice(0, 5)
-        if (t instanceof Date) return t.toTimeString().slice(0, 5)
-        return null
-      }).filter(Boolean)
-
-      const wagons = wagonsRaw
-        .map(row => row['Номер вагона']?.toString())
-        .filter(Boolean)
 
       setReportTimes(Array.from(new Set(times)))
       setWagonNumbers(Array.from(new Set(wagons)))

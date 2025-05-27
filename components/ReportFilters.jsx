@@ -14,65 +14,62 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
     loadFilterOptions()
   }, [])
 
-    const loadFilterOptions = async () => {
-      try {
-        const { data: timesRaw, error: timeErr } = await supabase
-          .from('Dislocation_daily2')
-          .select('"Время отчета"')
-          .not('Время отчета', 'is', null)
-          .order('Время отчета', { ascending: true })
-          .limit(10000)
-    
-        const { data: wagonsRaw, error: wagonErr } = await supabase
-          .from('Dislocation_daily2')
-          .select('"Номер вагона"')
-          .not('Номер вагона', 'is', null)
-          .order('Номер вагона', { ascending: true })
-          .limit(10000)
-    
-        if (timeErr || wagonErr) {
-          console.error('❌ Supabase ошибка:', timeErr || wagonErr)
-          return
-        }
-    
-        // 🔍 Отладка: что реально пришло
-        console.log('📦 Время отчета (сырое):', timesRaw.map(r => r['Время отчета']))
-        console.log('📦 Номер вагона (сырой):', wagonsRaw.map(r => r['Номер вагона']))
-    
-        // ✅ Обработка времени: берем HH:mm из строки или даты
-        const times = Array.from(new Set(
-          timesRaw
-            .map(row => {
-              const t = row['Время отчета']
-              if (!t) return null
-              try {
-                const timeObj = new Date(t)
-                return timeObj.toTimeString().slice(0, 5) // → "08:30"
-              } catch (e) {
-                return null
-              }
-            })
-            .filter(Boolean)
-        )).sort((a, b) => a.localeCompare(b))
-    
-        // ✅ Обработка вагонов
-        const wagons = Array.from(new Set(
-          wagonsRaw
-            .map(row => row['Номер вагона']?.toString())
-            .filter(Boolean)
-        )).sort((a, b) => Number(a) - Number(b))
-    
-        // 🔍 Уникальные результаты
-        console.log('✅ Уникальные времена:', times)
-        console.log('✅ Уникальные вагоны:', wagons)
-    
-        // ✅ Сохраняем в состояние
-        setReportTimes(times)
-        setWagonNumbers(wagons)
-      } catch (err) {
-        console.error('❌ Ошибка выполнения loadFilterOptions:', err)
+      const loadFilterOptions = async () => {
+    try {
+      // 📥 Загрузка времени отчета
+      const { data: timesRaw, error: timeErr } = await supabase
+        .from('Dislocation_daily2')
+        .select('"Время отчета"')
+        .not('Время отчета', 'is', null)
+        .order('Время отчета', { ascending: true })
+        .limit(10000)
+  
+      // 📥 Загрузка номеров вагонов
+      const { data: wagonsRaw, error: wagonErr } = await supabase
+        .from('Dislocation_daily2')
+        .select('"Номер вагона"')
+        .not('Номер вагона', 'is', null)
+        .order('Номер вагона', { ascending: true })
+        .limit(10000)
+  
+      if (timeErr || wagonErr) {
+        console.error('❌ Ошибка Supabase:', timeErr || wagonErr)
+        return
       }
+  
+      // 🔍 Отладка сырого вывода
+      console.log('📦 Время отчета (сырое):', timesRaw.map(r => r['Время отчета']))
+      console.log('📦 Номера вагонов (сырые):', wagonsRaw.map(r => r['Номер вагона']))
+  
+      // ✅ Обработка ВРЕМЕНИ: извлекаем HH:mm
+      const times = Array.from(new Set(
+        timesRaw
+          .map(row => {
+            const t = row['Время отчета']
+            return typeof t === 'string' ? t.slice(0, 5) : null
+          })
+          .filter(Boolean)
+      )).sort((a, b) => a.localeCompare(b))
+  
+      // ✅ Обработка ВАГОНОВ: уникальные, отсортированные
+      const wagons = Array.from(new Set(
+        wagonsRaw
+          .map(row => row['Номер вагона']?.toString())
+          .filter(Boolean)
+      )).sort((a, b) => Number(a) - Number(b))
+  
+      // 🔍 Отладка готовых значений
+      console.log('✅ Уникальные времена:', times)
+      console.log('✅ Уникальные вагоны:', wagons)
+  
+      // 💾 Сохраняем в состояние
+      setReportTimes(times)
+      setWagonNumbers(wagons)
+    } catch (err) {
+      console.error('❌ Ошибка выполнения loadFilterOptions:', err)
     }
+  }
+
 
 
 

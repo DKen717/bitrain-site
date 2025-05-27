@@ -61,14 +61,14 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
       <TextField label="Дата от" type="date" value={filters.fromDate}
         onChange={(e) => setFilters(prev => ({ ...prev, fromDate: e.target.value }))}
-        InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+        InputLabelProps={{ shrink: true }} size="small" sx={{ minWidth: 160 }} />
 
       <TextField label="Дата до" type="date" value={filters.toDate}
         onChange={(e) => setFilters(prev => ({ ...prev, toDate: e.target.value }))}
-        InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+        InputLabelProps={{ shrink: true }} size="small" sx={{ minWidth: 160 }} />
 
 
-      <FormControl sx={{ minWidth: 200 }}>
+      <FormControl size="small" sx={{ minWidth: 200 }}>
         <InputLabel>Время отчета</InputLabel>
         <Select multiple value={filters.selectedTimes}
           onChange={(e) => setFilters(prev => ({ ...prev, selectedTimes: e.target.value }))}
@@ -83,7 +83,7 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         </Select>
       </FormControl>
 
-      <FormControl sx={{ minWidth: 200 }}>
+      <FormControl size="small" sx={{ minWidth: 200 }}>
         <InputLabel>Рабочий/нерабочий</InputLabel>
         <Select value={filters.workingStatus}
           onChange={(e) => setFilters(prev => ({ ...prev, workingStatus: e.target.value }))}
@@ -101,15 +101,15 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         onChange={(event, newValue) => setFilters(prev => ({ ...prev, selectedWagons: newValue }))}
         filterSelectedOptions
         renderInput={(params) => (<TextField {...params} label="Номера вагонов" placeholder="Вводите номер" />)}
-        sx={{ minWidth: 300 }} />
+        size="small" sx={{ minWidth: 300 }} />
 
       <TextField type="number" label="Дней без операции: от" value={filters.minIdleDays}
         onChange={(e) => setFilters(prev => ({ ...prev, minIdleDays: e.target.value }))}
-        size="small" sx={{fontSize: '0.55rem', minWidth: 100 }} />
+        size="small" sx={{fontSize: '0.55rem', minWidth: 160 }} />
       
       <TextField type="number" label="Дней без операции: до" value={filters.maxIdleDays}
         onChange={(e) => setFilters(prev => ({ ...prev, maxIdleDays: e.target.value }))}
-        size="small" sx={{fontSize: '0.55rem', minWidth: 100 }} />
+        size="small" sx={{fontSize: '0.55rem', minWidth: 160 }} />
 
       <Button onClick={onSearch} variant="contained" color="primary" disabled={loading}>
         {loading ? 'Загрузка...' : '🔍 Поиск'}

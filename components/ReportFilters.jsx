@@ -69,11 +69,11 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
 
       <TextField type="number" label="Дней без операции: от" value={filters.minIdleDays}
         onChange={(e) => setFilters(prev => ({ ...prev, minIdleDays: e.target.value }))}
-        sx={{ minWidth: 160 }} />
+        InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
       
       <TextField type="number" label="Дней без операции: до" value={filters.maxIdleDays}
         onChange={(e) => setFilters(prev => ({ ...prev, maxIdleDays: e.target.value }))}
-        sx={{ minWidth: 160 }} />
+        InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
 
 
       <FormControl sx={{ minWidth: 200 }}>

@@ -15,25 +15,29 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
   }, [])
 
       const loadFilterOptions = async () => {
-    try {
-      const { data: timesRaw, error: timeErr } = await supabase
-        .from('Dislocation_daily2')
-        .select('"Время отчета"')
-        .not('Время отчета', 'is', null)
-        .limit(10000)
-  
-      const { data: wagonsRaw, error: wagonErr } = await supabase
-        .from('Dislocation_daily2')
-        .select('"Номер вагона"')
-        .not('Номер вагона', 'is', null)
-        .limit(10000)
-  
-      if (timeErr || wagonErr) {
-        console.error('📛 Supabase error:', timeErr || wagonErr)
-        return
-      }
-  
-      const times = [...new Set(timesRaw
+  try {
+    const { data: timesRaw, error: timeErr } = await supabase
+      .from('Dislocation_daily2')
+      .select('"Время отчета"')
+      .not('Время отчета', 'is', null)
+      .order('Время отчета', { ascending: true })
+      .limit(10000)
+
+    const { data: wagonsRaw, error: wagonErr } = await supabase
+      .from('Dislocation_daily2')
+      .select('"Номер вагона"')
+      .not('Номер вагона', 'is', null)
+      .order('Номер вагона', { ascending: true })
+      .limit(10000)
+
+    if (timeErr || wagonErr) {
+      console.error('❌ Supabase ошибка:', timeErr || wagonErr)
+      return
+    }
+
+    // 🔹 Уникальные ВРЕМЕНА отчета
+    const times = Array.from(new Set(
+      timesRaw
         .map(row => {
           const t = row['Время отчета']
           if (!t) return null
@@ -42,19 +46,26 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
           return null
         })
         .filter(Boolean)
-      )].sort((a, b) => a.localeCompare(b))  // ⬅️ сортировка времени
-  
-      const wagons = [...new Set(wagonsRaw
+    )).sort((a, b) => a.localeCompare(b))
+
+    // 🔹 Уникальные НОМЕРА вагонов
+    const wagons = Array.from(new Set(
+      wagonsRaw
         .map(row => row['Номер вагона']?.toString())
         .filter(Boolean)
-      )].sort((a, b) => Number(a) - Number(b))  // ⬅️ сортировка номеров по возрастанию
-  
-      setReportTimes(times)
-      setWagonNumbers(wagons)
-    } catch (err) {
-      console.error('Ошибка выполнения loadFilterOptions:', err)
-    }
+    )).sort((a, b) => Number(a) - Number(b))
+
+    // ✅ Сохраняем в состояние
+    setReportTimes(times)
+    setWagonNumbers(wagons)
+  } catch (err) {
+    console.error('❌ Ошибка в loadFilterOptions:', err)
   }
+}
+
+  console.log('✅ Уникальные ВРЕМЕНА:', times)
+console.log('✅ Уникальные ВАГОНЫ:', wagons)
+
 
 
 

@@ -6,6 +6,14 @@ export function useReportData(filters, page, pageSize) {
   const [total, setTotal] = useState(null)
   const [loading, setLoading] = useState(false)
 
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    ...
+  }, [filters, page, pageSize])
+
+  return { data, total, loading, fetchData }
+  }
+
   const fetchData = async () => {
     setLoading(true)
     try {

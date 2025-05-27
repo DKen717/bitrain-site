@@ -61,9 +61,6 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
   } catch (err) {
     console.error('❌ Ошибка в loadFilterOptions:', err)
   }
-
-    console.log('✅ Уникальные ВРЕМЕНА:', times)
-    console.log('✅ Уникальные ВАГОНЫ:', wagons)
 }
 
 

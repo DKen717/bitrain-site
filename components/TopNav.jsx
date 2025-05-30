@@ -6,7 +6,7 @@ export default function TopNav() {
     <AppBar position="static" sx={{ backgroundColor: '#f6d46b' }}>
       <Toolbar>
         <Typography variant="h6" sx={{ flexGrow: 1, color: '#fff' }}>
-          Aiway Logistic
+          BI Train
         </Typography>
         <Link href="/" passHref>
           <Button sx={{ color: '#000000' }}>Главная</Button>

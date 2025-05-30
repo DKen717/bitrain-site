@@ -10,6 +10,7 @@ import TopNav from '../components/TopNav'
 
 
 export default function Home() {
+        <TopNav />
 const today = new Date().toISOString().slice(0, 10)  // формат YYYY-MM-DD
 
 const [filters, setFilters] = useState({
@@ -56,7 +57,6 @@ const [filters, setFilters] = useState({
   }
 
   return (
-      <TopNav />
     <Box sx={{ padding: '2rem', fontFamily: 'Arial',fontSize: '0.65rem' }}>
       <Typography variant="h4" gutterBottom>Aiway Logistic — отчет</Typography>
 

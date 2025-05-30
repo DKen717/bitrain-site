@@ -4,6 +4,7 @@ import ReportFilters from '../components/ReportFilters'
 import ReportTable from '../components/ReportTable'
 import Pagination from '../components/Pagination'
 import { useReportData } from '../hooks/useReportData'
+import TopNav from '../components/TopNav'
 
 
 
@@ -55,6 +56,8 @@ const [filters, setFilters] = useState({
   }
 
   return (
+        <>
+      <TopNav />
     <Box sx={{ padding: '2rem', fontFamily: 'Arial',fontSize: '0.65rem' }}>
       <Typography variant="h4" gutterBottom>Aiway Logistic — отчет</Typography>
 

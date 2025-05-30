@@ -5,7 +5,7 @@ export default function TopNav() {
   return (
     <AppBar position="static" sx={{ backgroundColor: '#f6d46b' }}>
       <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1, color: '#fff' }}>
+        <Typography variant="h6" sx={{ flexGrow: 1, color: '#000000' }}>
           BI Train
         </Typography>
         <Link href="/" passHref>

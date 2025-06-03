@@ -136,11 +136,14 @@ export default function AdminUsers() {
                 <TableCell>{u.email || '—'}</TableCell>
                 <TableCell>{u.role || '—'}</TableCell>
                 <TableCell>{getCompanyName(u.company_id)}</TableCell>
-                <TableCell>{u.created_at || '—'}</TableCell>
+                <TableCell>
+                  {u.created_at
+                    ? new Date(u.created_at).toLocaleString()
+                    : '—'}
                 </TableCell>
               </TableRow>
             ))}
-          </TableBody>      
+          </TableBody>
         </Table>
       </Box>
     </>

@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <>
       {/* 🔝 Шапка */}
-      <AppBar position="static" elevation={0} sx={{ backgroundColor: '#ffc054', color: '#000' }}>
+      <AppBar position="fixed" elevation={0} sx={{ backgroundColor: '#ffc054', color: '#000', width: '100%', top: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.drawer + 1, }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ fontWeight: 'bold', fontSize: '1.2rem' }}>
             <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>

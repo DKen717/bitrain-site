@@ -114,7 +114,7 @@ export default function AdminUsers() {
 
         {/* 📋 Список пользователей */}
         <Typography variant="subtitle1">Список пользователей</Typography>
-        /*<Table component={Paper}>
+{/*<Table component={Paper}>
           <TableHead>
             <TableRow>
               <TableCell>Email</TableCell>
@@ -133,7 +133,7 @@ export default function AdminUsers() {
               </TableRow>
             ))}
           </TableBody>
-        </Table>*/
+        </Table>*/}
       </Box>
     </>
   )

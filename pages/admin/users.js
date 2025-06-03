@@ -133,7 +133,7 @@ export default function AdminUsers() {
           </TableHead>
           <TableBody>
             {(users || []).map((u, i) => (
-              <TableRow key={u.id || i}>
+              <TableRow key={i}>
                 <TableCell>{u.email || '—'}</TableCell>
                 <TableCell>{u.role || '—'}</TableCell>
                 <TableCell>{getCompanyName(u.company_id)}</TableCell>

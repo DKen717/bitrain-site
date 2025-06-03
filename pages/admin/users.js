@@ -6,6 +6,7 @@ import {
 } from '@mui/material'
 import { supabase } from '../../src/supabaseClient'
 import TopNav from '../../components/TopNav'
+import dayjs from 'dayjs'
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([])
@@ -138,7 +139,7 @@ export default function AdminUsers() {
                 <TableCell>{getCompanyName(u.company_id)}</TableCell>
                 <TableCell>
                   {u.created_at
-                    ? new Date(u.created_at).toLocaleString()
+                    ? dayjs(u.created_at).format('YYYY-MM-DD HH:mm')
                     : '—'}
                 </TableCell>
               </TableRow>

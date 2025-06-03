@@ -19,14 +19,22 @@ export default function AdminUsers() {
 
   const loadUsers = async () => {
     const { data, error } = await supabase.from('users_custom').select('*')
-    if (!error) setUsers(data)
-    else console.error('Ошибка загрузки пользователей:', error)
+    if (!error) {
+      console.log('✅ Users loaded:', data)
+      setUsers(data)
+    } else {
+      console.error('❌ Ошибка загрузки пользователей:', error)
+    }
   }
 
   const loadCompanies = async () => {
     const { data, error } = await supabase.from('companies').select('id, name')
-    if (!error) setCompanies(data)
-    else console.error('Ошибка загрузки компаний:', error)
+    if (!error) {
+      console.log('✅ Companies loaded:', data)
+      setCompanies(data)
+    } else {
+      console.error('❌ Ошибка загрузки компаний:', error)
+    }
   }
 
   const getCompanyName = (companyId) => {

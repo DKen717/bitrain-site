@@ -13,8 +13,6 @@ const AdminUsers = dynamic(() => import('../../components/AdminUsers'), {
   ssr: false,
 })
 
-export default AdminUsers
-
 export default function AdminUsers() {
   const [users, setUsers] = useState([])
   const [companies, setCompanies] = useState([])

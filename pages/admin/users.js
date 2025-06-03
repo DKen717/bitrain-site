@@ -127,7 +127,7 @@ export default function AdminUsers() {
               <TableCell>Email</TableCell>
               <TableCell>Роль</TableCell>
               <TableCell>Компания</TableCell>
-              //<TableCell>Дата создания</TableCell>
+              <TableCell>Дата создания</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -136,11 +136,11 @@ export default function AdminUsers() {
                 <TableCell>{u.email || '—'}</TableCell>
                 <TableCell>{u.role || '—'}</TableCell>
                 <TableCell>{getCompanyName(u.company_id)}</TableCell>
-                //<TableCell>
-                //  {u.created_at
-                //    ? new Date(u.created_at).toLocaleString()
-                //    : '—'}
-                //</TableCell>
+                <TableCell>
+                  {u.created_at
+                    ? new Date(u.created_at).toLocaleString()
+                    : '—'}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

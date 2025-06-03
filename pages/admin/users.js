@@ -78,34 +78,46 @@ export default function AdminUsersPage() {
           <Typography variant="subtitle1">Добавить нового пользователя</Typography>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', marginTop: 2 }}>
             <TextField
+              id="user-email"
+              name="email"
               label="Email"
               value={newUser.email}
               onChange={e => setNewUser({ ...newUser, email: e.target.value })}
             />
             <TextField
+              id="user-password"
+              name="password"
               label="Пароль"
               type="password"
               value={newUser.password}
               onChange={e => setNewUser({ ...newUser, password: e.target.value })}
             />
+        
             <FormControl sx={{ minWidth: 160 }}>
-              <InputLabel>Роль</InputLabel>
+              <InputLabel id="role-label">Роль</InputLabel>
               <Select
+                labelId="role-label"
+                id="user-role"
+                name="role"
                 value={newUser.role}
-                onChange={e => setNewUser({ ...newUser, role: e.target.value })}
                 label="Роль"
+                onChange={e => setNewUser({ ...newUser, role: e.target.value })}
               >
                 <MenuItem value="user">Обычный</MenuItem>
                 <MenuItem value="companyadmin">Админ компании</MenuItem>
                 <MenuItem value="superadmin">Супер-админ</MenuItem>
               </Select>
             </FormControl>
+        
             <FormControl sx={{ minWidth: 160 }}>
-              <InputLabel>Компания</InputLabel>
+              <InputLabel id="company-label">Компания</InputLabel>
               <Select
+                labelId="company-label"
+                id="user-company"
+                name="company_id"
                 value={String(newUser.company_id || '')}
-                onChange={e => setNewUser({ ...newUser, company_id: e.target.value })}
                 label="Компания"
+                onChange={e => setNewUser({ ...newUser, company_id: e.target.value })}
               >
                 <MenuItem value="">—</MenuItem>
                 {companies.map(c => (
@@ -113,9 +125,11 @@ export default function AdminUsersPage() {
                 ))}
               </Select>
             </FormControl>
+        
             <Button variant="contained" onClick={handleAddUser}>➕ Добавить</Button>
           </Box>
         </Paper>
+
 
         {/* 📋 Список пользователей */}
         <Typography variant="subtitle1">Список пользователей</Typography>

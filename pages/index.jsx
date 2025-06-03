@@ -14,7 +14,7 @@ export default function Home() {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Link href="/login" passHref>
-              <Button variant="outlined" sx={{ borderRadius: '999px' }}>
+              <Button variant="outlined" sx={{fontWeight: 'bold', borderRadius: '999px',color: '#000' }}>
                 Вход
               </Button>
             </Link>
@@ -38,7 +38,7 @@ export default function Home() {
       <Box sx={{ overflow: 'hidden', mt: -6 }}>
         <svg viewBox="0 0 1440 320" style={{ width: '100%', height: 'auto' }}>
           <path
-            fill="#edf0f2"
+            fill="#ffc054"
             fillOpacity="0.15"
             d="M0,192L60,202.7C120,213,240,235,360,240C480,245,600,235,720,208C840,181,960,139,1080,133.3C1200,128,1320,160,1380,176L1440,192L1440,0L1380,0C1320,0,1200,0,1080,0C960,0,840,0,720,0C600,0,480,0,360,0C240,0,120,0,60,0L0,0Z"
           />

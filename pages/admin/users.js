@@ -42,7 +42,7 @@ export default function AdminUsers() {
   const company = companies.find(c => c.id === companyId)
   if (!company) {
     console.warn('⚠️ Компания не найдена по ID:', companyId)
-    return 'NULL'
+    return '-'
   }
   return company.name
 }

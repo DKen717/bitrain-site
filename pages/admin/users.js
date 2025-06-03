@@ -103,13 +103,13 @@ export default function AdminUsersPage() {
             <FormControl sx={{ minWidth: 160 }}>
               <InputLabel>Компания</InputLabel>
               <Select
-                value={string(newUser.company_id || '')}
+                value={String(newUser.company_id || '')}
                 onChange={e => setNewUser({ ...newUser, company_id: e.target.value })}
                 label="Компания"
               >
                 <MenuItem value="">—</MenuItem>
                 {companies.map(c => (
-                  <MenuItem key={c.id} value={string(c.id)}>{c.name}</MenuItem>
+                  <MenuItem key={c.id} value={String(c.id)}>{c.name}</MenuItem>
                 ))}
               </Select>
             </FormControl>

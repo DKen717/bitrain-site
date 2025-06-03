@@ -1,11 +1,14 @@
+// pages/admin/users.js
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import {
   Box, Typography, Button, TextField, Select, MenuItem,
-  FormControl, InputLabel, Table, TableHead, TableBody, TableCell, TableRow, Paper
+  FormControl, InputLabel, Table, TableHead, TableBody, TableCell, TableRow, Paper, IconButton
 } from '@mui/material'
+import { Delete, Edit, Save } from '@mui/icons-material'
 import { supabase } from '../../src/supabaseClient'
 import TopNav from '../../components/TopNav'
+import bcrypt from 'bcryptjs'
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([])
@@ -16,6 +19,8 @@ export default function AdminUsersPage() {
     role: 'user',
     company_id: ''
   })
+  const [editingUserId, setEditingUserId] = useState(null)
+  const [editedUser, setEditedUser] = useState({})
   const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
@@ -25,7 +30,7 @@ export default function AdminUsersPage() {
   }, [])
 
   const loadUsers = async () => {
-    const { data, error } = await supabase.from('users_custom').select('*')
+    const { data, error } = await supabase.from('users_custom').select('*').order('created_at', { ascending: false })
     if (!error && Array.isArray(data)) {
       setUsers(data)
     } else {
@@ -55,8 +60,10 @@ export default function AdminUsersPage() {
       return
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10)
+
     const { error } = await supabase.from('users_custom').insert([
-      { email, password, role, company_id }
+      { email, password: hashedPassword, role, company_id, created_at: new Date().toISOString() }
     ])
 
     if (error) {
@@ -64,6 +71,29 @@ export default function AdminUsersPage() {
       alert('Ошибка добавления пользователя: ' + error.message)
     } else {
       setNewUser({ email: '', password: '', role: 'user', company_id: '' })
+      loadUsers()
+    }
+  }
+
+  const handleDeleteUser = async (id) => {
+    const { error } = await supabase.from('users_custom').delete().eq('id', id)
+    if (error) {
+      console.error('❌ Ошибка удаления пользователя:', error.message)
+    } else {
+      loadUsers()
+    }
+  }
+
+  const handleSaveEdit = async (id) => {
+    const { email, role, company_id } = editedUser
+    const { error } = await supabase.from('users_custom')
+      .update({ email, role, company_id })
+      .eq('id', id)
+    if (error) {
+      console.error('❌ Ошибка редактирования:', error.message)
+    } else {
+      setEditingUserId(null)
+      setEditedUser({})
       loadUsers()
     }
   }
@@ -76,7 +106,6 @@ export default function AdminUsersPage() {
 
         {isClient && (
           <>
-            {/* 📥 Добавление пользователя */}
             <Paper sx={{ padding: 2, marginBottom: 3 }}>
               <Typography variant="subtitle1">Добавить нового пользователя</Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', marginTop: 2 }}>
@@ -130,7 +159,6 @@ export default function AdminUsersPage() {
               </Box>
             </Paper>
 
-            {/* 📋 Список пользователей */}
             <Typography variant="subtitle1">Список пользователей</Typography>
             <Table component={Paper}>
               <TableHead>
@@ -138,14 +166,67 @@ export default function AdminUsersPage() {
                   <TableCell>Email</TableCell>
                   <TableCell>Роль</TableCell>
                   <TableCell>Компания</TableCell>
+                  <TableCell>Дата добавления</TableCell>
+                  <TableCell>Действия</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(users || []).map((u, i) => (
-                  <TableRow key={u.id || i}>
-                    <TableCell>{u.email || '—'}</TableCell>
-                    <TableCell>{u.role || '—'}</TableCell>
-                    <TableCell>{getCompanyName(u.company_id)}</TableCell>
+                {(users || []).map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell>
+                      {editingUserId === u.id ? (
+                        <TextField
+                          value={editedUser.email || ''}
+                          onChange={e => setEditedUser({ ...editedUser, email: e.target.value })}
+                        />
+                      ) : (
+                        u.email || '—'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingUserId === u.id ? (
+                        <Select
+                          value={editedUser.role || ''}
+                          onChange={e => setEditedUser({ ...editedUser, role: e.target.value })}
+                        >
+                          <MenuItem value="user">Обычный</MenuItem>
+                          <MenuItem value="companyadmin">Админ компании</MenuItem>
+                          <MenuItem value="superadmin">Супер-админ</MenuItem>
+                        </Select>
+                      ) : (
+                        u.role || '—'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingUserId === u.id ? (
+                        <Select
+                          value={String(editedUser.company_id || '')}
+                          onChange={e => setEditedUser({ ...editedUser, company_id: e.target.value })}
+                        >
+                          {companies.map(c => (
+                            <MenuItem key={c.id} value={String(c.id)}>{c.name}</MenuItem>
+                          ))}
+                        </Select>
+                      ) : (
+                        getCompanyName(u.company_id)
+                      )}
+                    </TableCell>
+                    <TableCell>{new Date(u.created_at).toLocaleString()}</TableCell>
+                    <TableCell>
+                      {editingUserId === u.id ? (
+                        <IconButton onClick={() => handleSaveEdit(u.id)}><Save /></IconButton>
+                      ) : (
+                        <IconButton onClick={() => {
+                          setEditingUserId(u.id)
+                          setEditedUser({
+                            email: u.email,
+                            role: u.role,
+                            company_id: u.company_id
+                          })
+                        }}><Edit /></IconButton>
+                      )}
+                      <IconButton onClick={() => handleDeleteUser(u.id)}><Delete /></IconButton>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

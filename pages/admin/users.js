@@ -91,7 +91,7 @@ export default function AdminUsers() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {users_custom.map(u => (
+            {users.map(u => (
               <TableRow key={u.id}>
                 <TableCell>{u.email}</TableCell>
                 <TableCell>{u.role}</TableCell>

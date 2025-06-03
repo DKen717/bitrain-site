@@ -7,6 +7,13 @@ import {
 import { supabase } from '../../src/supabaseClient'
 import TopNav from '../../components/TopNav'
 import dayjs from 'dayjs'
+import dynamic from 'next/dynamic'
+
+const AdminUsers = dynamic(() => import('../../components/AdminUsers'), {
+  ssr: false,
+})
+
+export default AdminUsers
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([])

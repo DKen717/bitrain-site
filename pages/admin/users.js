@@ -20,17 +20,36 @@ export default function AdminUsers() {
   const loadUsers = async () => {
     const { data, error } = await supabase.from('users_custom').select('*')
     if (!error) setUsers(data)
+    else console.error('Ошибка загрузки пользователей:', error)
   }
 
   const loadCompanies = async () => {
     const { data, error } = await supabase.from('companies').select('id, name')
     if (!error) setCompanies(data)
+    else console.error('Ошибка загрузки компаний:', error)
+  }
+
+  const getCompanyName = (companyId) => {
+    const company = companies.find(c => c.id === companyId)
+    return company ? company.name : '—'
   }
 
   const handleAddUser = async () => {
-    // ⚠️ Тут должен быть хеш пароля через API, временно сохраняем как текст
-    const { error } = await supabase.from('users_custom').insert([newUser])
-    if (!error) {
+    const { email, password, role, company_id } = newUser
+
+    if (!email || !password || !role || !company_id) {
+      alert('⚠️ Заполните все поля')
+      return
+    }
+
+    const { error } = await supabase.from('users_custom').insert([
+      { email, password, role, company_id }
+    ])
+
+    if (error) {
+      console.error('❌ Ошибка добавления пользователя:', error.message)
+      alert('Ошибка добавления пользователя: ' + error.message)
+    } else {
       setNewUser({ email: '', password: '', role: 'user', company_id: '' })
       loadUsers()
     }
@@ -91,7 +110,7 @@ export default function AdminUsers() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map(u => (
+            {(users || []).map(u => (
               <TableRow key={u.id}>
                 <TableCell>{u.email}</TableCell>
                 <TableCell>{u.role}</TableCell>

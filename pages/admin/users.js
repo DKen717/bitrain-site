@@ -138,8 +138,8 @@ export default function AdminUsers() {
                 <TableCell>{u.role || '—'}</TableCell>
                 <TableCell>{getCompanyName(u.company_id)}</TableCell>
                 <TableCell>
-                    {typeof window !== 'undefined' && u.created_at
-                        ? new Date(u.created_at).toLocaleString()
+                      {u.created_at
+                        ? dayjs(u.created_at).format('YYYY-MM-DD HH:mm')
                         : '—'}
                 </TableCell>
               </TableRow>

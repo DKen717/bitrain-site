@@ -114,7 +114,7 @@ export default function AdminUsers() {
 
         {/* 📋 Список пользователей */}
         <Typography variant="subtitle1">Список пользователей</Typography>
-{/*<Table component={Paper}>
+        <Table component={Paper}>
           <TableHead>
             <TableRow>
               <TableCell>Email</TableCell>
@@ -124,16 +124,18 @@ export default function AdminUsers() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {(users || []).map(u => (
-              <TableRow key={u.id}>
-                <TableCell>{u.email}</TableCell>
-                <TableCell>{u.role}</TableCell>
+            {(users || []).map((u, i) => (
+              <TableRow key={u.id || i}>
+                <TableCell>{u.email || '—'}</TableCell>
+                <TableCell>{u.role || '—'}</TableCell>
                 <TableCell>{getCompanyName(u.company_id)}</TableCell>
-                <TableCell>{u.created_at ? new Date(u.created_at).toLocaleString() : '—'}</TableCell>
+                <TableCell>
+                  {u.created_at ? new Date(u.created_at).toLocaleString() : '—'}
+                </TableCell>
               </TableRow>
             ))}
-          </TableBody>
-        </Table>*/}
+          </TableBody>      
+        </Table>
       </Box>
     </>
   )

@@ -1,14 +1,28 @@
 import { useRouter } from 'next/router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Typography, Button, AppBar, Toolbar, Container } from '@mui/material'
 import Link from 'next/link'
 import { supabase } from '../src/supabaseClient'
-import { useSession, useUser } from '../src/useSession'
 
 export default function Home() {
   const router = useRouter()
-  const { session } = useSession()
-  const user = useUser()
+  const [session, setSession] = useState(null)
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data } = await supabase.auth.getSession()
+      setSession(data.session)
+    }
+    getSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => {
+      listener?.subscription?.unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     if (session) {
@@ -26,7 +40,7 @@ export default function Home() {
   return (
     <>
       {/* 🔝 Шапка */}
-      <AppBar position="fixed" elevation={0} sx={{ backgroundColor: '#ffc054', color: '#000', width: '100%', top: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.drawer + 1, }}>
+      <AppBar position="fixed" elevation={0} sx={{ backgroundColor: '#ffc054', color: '#000', width: '100%', top: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ fontWeight: 'bold', fontSize: '1.2rem' }}>
             <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -70,7 +84,7 @@ export default function Home() {
           О системе
         </Typography>
         <Typography>
-          BI Train — это  решение для отслеживания, анализа и управления парком вагонов
+          BI Train — это решение для отслеживания, анализа и управления парком вагонов
           в реальном времени. Система подключается к источникам данных, визуализирует отчеты,
           сокращает простои и автоматизирует контроль вагонов.
         </Typography>

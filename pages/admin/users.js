@@ -37,10 +37,16 @@ export default function AdminUsers() {
     }
   }
 
+
   const getCompanyName = (companyId) => {
-    const company = companies.find(c => c.id === companyId)
-    return company ? company.name : '—'
+  const company = companies.find(c => c.id === companyId)
+  if (!company) {
+    console.warn('⚠️ Компания не найдена по ID:', companyId)
+    return '—'
   }
+  return company.name
+}
+
 
   const handleAddUser = async () => {
     const { email, password, role, company_id } = newUser

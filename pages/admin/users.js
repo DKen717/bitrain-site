@@ -95,7 +95,7 @@ export default function AdminUsers() {
               <TableRow key={u.id}>
                 <TableCell>{u.email}</TableCell>
                 <TableCell>{u.role}</TableCell>
-                <TableCell>{u.company_id || '—'}</TableCell>
+                <TableCell>{getCompanyName(u.company_id)}</TableCell>
                 <TableCell>{new Date(u.created_at).toLocaleString()}</TableCell>
               </TableRow>
             ))}

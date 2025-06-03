@@ -1,11 +1,12 @@
+// pages/admin/users.js
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import {
-  Box, Typography, Button, TextField, Select, MenuItem, FormControl,
-  InputLabel, Table, TableHead, TableBody, TableCell, TableRow, Paper
+  Box, Typography, Button, TextField, Select, MenuItem,
+  FormControl, InputLabel, Table, TableHead, TableBody, TableCell, TableRow, Paper
 } from '@mui/material'
 import { supabase } from '../../src/supabaseClient'
 import TopNav from '../../components/TopNav'
-import dayjs from 'dayjs'
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([])
@@ -25,7 +26,6 @@ export default function AdminUsersPage() {
   const loadUsers = async () => {
     const { data, error } = await supabase.from('users_custom').select('*')
     if (!error && Array.isArray(data)) {
-      console.log('✅ Users loaded:', data)
       setUsers(data)
     } else {
       console.error('❌ Ошибка загрузки пользователей:', error)
@@ -35,7 +35,6 @@ export default function AdminUsersPage() {
   const loadCompanies = async () => {
     const { data, error } = await supabase.from('companies').select('id, name')
     if (!error) {
-      console.log('✅ Companies loaded:', data)
       setCompanies(data)
     } else {
       console.error('❌ Ошибка загрузки компаний:', error)
@@ -44,11 +43,7 @@ export default function AdminUsersPage() {
 
   const getCompanyName = (companyId) => {
     const company = companies.find(c => c.id === companyId)
-    if (!company) {
-      console.warn('⚠️ Компания не найдена по ID:', companyId)
-      return '—'
-    }
-    return company.name
+    return company ? company.name : '—'
   }
 
   const handleAddUser = async () => {
@@ -82,10 +77,17 @@ export default function AdminUsersPage() {
         <Paper sx={{ padding: 2, marginBottom: 3 }}>
           <Typography variant="subtitle1">Добавить нового пользователя</Typography>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', marginTop: 2 }}>
-            <TextField label="Email" value={newUser.email}
-              onChange={e => setNewUser({ ...newUser, email: e.target.value })} />
-            <TextField label="Пароль" type="password" value={newUser.password}
-              onChange={e => setNewUser({ ...newUser, password: e.target.value })} />
+            <TextField
+              label="Email"
+              value={newUser.email}
+              onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+            />
+            <TextField
+              label="Пароль"
+              type="password"
+              value={newUser.password}
+              onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+            />
             <FormControl sx={{ minWidth: 160 }}>
               <InputLabel>Роль</InputLabel>
               <Select
@@ -123,7 +125,6 @@ export default function AdminUsersPage() {
               <TableCell>Email</TableCell>
               <TableCell>Роль</TableCell>
               <TableCell>Компания</TableCell>
-              <TableCell>Дата создания</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -132,11 +133,6 @@ export default function AdminUsersPage() {
                 <TableCell>{u.email || '—'}</TableCell>
                 <TableCell>{u.role || '—'}</TableCell>
                 <TableCell>{getCompanyName(u.company_id)}</TableCell>
-                <TableCell suppressHydrationWarning>
-                  {u.created_at
-                    ? dayjs(u.created_at).format('YYYY-MM-DD HH:mm')
-                    : '—'}
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>

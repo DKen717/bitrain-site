@@ -25,6 +25,11 @@ export default function AdminUsers() {
     } else {
       console.error('❌ Ошибка загрузки пользователей:', error)
     }
+    if (!error && Array.isArray(data)) {
+      setUsers(data)
+    } else {
+      console.error('Ошибка или не массив:', error, data)
+    }    
   }
 
   const loadCompanies = async () => {
@@ -44,7 +49,7 @@ export default function AdminUsers() {
     console.warn('⚠️ Компания не найдена по ID:', companyId)
     return '-'
   }
-  return company.name
+  return company ? company.name : '—'
 }
 
 
@@ -68,6 +73,8 @@ export default function AdminUsers() {
       loadUsers()
     }
   }
+
+  console.log('👤 Users:', users)
 
   return (
     <>

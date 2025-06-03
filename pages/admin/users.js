@@ -1,4 +1,3 @@
-// pages/admin/users.js
 import { useEffect, useState } from 'react'
 import {
   Box, Typography, Button, TextField, Select, MenuItem, FormControl,
@@ -7,16 +6,16 @@ import {
 import { supabase } from '../../src/supabaseClient'
 import TopNav from '../../components/TopNav'
 import dayjs from 'dayjs'
-import dynamic from 'next/dynamic'
 
-const AdminUsers = dynamic(() => import('../../components/AdminUsers'), {
-  ssr: false,
-})
-
-export default function AdminUsers() {
+export default function AdminUsersPage() {
   const [users, setUsers] = useState([])
   const [companies, setCompanies] = useState([])
-  const [newUser, setNewUser] = useState({ email: '', password: '', role: 'user', company_id: '' })
+  const [newUser, setNewUser] = useState({
+    email: '',
+    password: '',
+    role: 'user',
+    company_id: ''
+  })
 
   useEffect(() => {
     loadUsers()
@@ -25,17 +24,12 @@ export default function AdminUsers() {
 
   const loadUsers = async () => {
     const { data, error } = await supabase.from('users_custom').select('*')
-    if (!error) {
+    if (!error && Array.isArray(data)) {
       console.log('✅ Users loaded:', data)
       setUsers(data)
     } else {
       console.error('❌ Ошибка загрузки пользователей:', error)
     }
-    if (!error && Array.isArray(data)) {
-      setUsers(data)
-    } else {
-      console.error('Ошибка или не массив:', error, data)
-    }    
   }
 
   const loadCompanies = async () => {
@@ -48,16 +42,14 @@ export default function AdminUsers() {
     }
   }
 
-
   const getCompanyName = (companyId) => {
-  const company = companies.find(c => c.id === companyId)
-  if (!company) {
-    console.warn('⚠️ Компания не найдена по ID:', companyId)
-    return '-'
+    const company = companies.find(c => c.id === companyId)
+    if (!company) {
+      console.warn('⚠️ Компания не найдена по ID:', companyId)
+      return '—'
+    }
+    return company.name
   }
-  return company ? company.name : '—'
-}
-
 
   const handleAddUser = async () => {
     const { email, password, role, company_id } = newUser
@@ -79,8 +71,6 @@ export default function AdminUsers() {
       loadUsers()
     }
   }
-
-  console.log('👤 Users:', users)
 
   return (
     <>
@@ -138,14 +128,14 @@ export default function AdminUsers() {
           </TableHead>
           <TableBody>
             {(users || []).map((u, i) => (
-              <TableRow key={i}>
+              <TableRow key={u.id || i}>
                 <TableCell>{u.email || '—'}</TableCell>
                 <TableCell>{u.role || '—'}</TableCell>
                 <TableCell>{getCompanyName(u.company_id)}</TableCell>
-                <TableCell>
-                      {u.created_at
-                        ? dayjs(u.created_at).format('YYYY-MM-DD HH:mm')
-                        : '—'}
+                <TableCell suppressHydrationWarning>
+                  {u.created_at
+                    ? dayjs(u.created_at).format('YYYY-MM-DD HH:mm')
+                    : '—'}
                 </TableCell>
               </TableRow>
             ))}

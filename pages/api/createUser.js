@@ -9,25 +9,24 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Все поля обязательны' })
   }
 
-  // 1. Проверяем: есть ли пользователь с таким email в auth.users
-  const { data: existingUser, error: lookupError } = await supabaseAdmin
-    .from('auth.users')
-    .select('id')
-    .eq('email', email)
-    .single()
+  // 🔍 Получаем список пользователей из Auth
+  const { data: existingUsers, error: lookupError } = await supabaseAdmin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000
+  })
+
+  if (lookupError) {
+    return res.status(500).json({ error: 'Ошибка при получении списка пользователей' })
+  }
+
+  const existingUser = existingUsers.users.find(u => u.email === email)
 
   let userId
 
-  if (lookupError && lookupError.code !== 'PGRST116') {
-    // PGRST116 = no rows found
-    return res.status(500).json({ error: 'Ошибка при проверке существующего пользователя' })
-  }
-
   if (existingUser) {
-    // 2. Если пользователь уже есть — просто добавляем в users_custom (если ещё нет)
     userId = existingUser.id
   } else {
-    // 3. Иначе создаем пользователя в Supabase Auth
+    // 🆕 Создаем пользователя в Supabase Auth
     const { data, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -41,7 +40,7 @@ export default async function handler(req, res) {
     userId = data.user.id
   }
 
-  // 4. Проверяем: есть ли уже запись в users_custom
+  // 🗃 Проверяем: есть ли уже запись в users_custom
   const { data: userMeta } = await supabaseAdmin
     .from('users_custom')
     .select('id')

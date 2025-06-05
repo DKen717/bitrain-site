@@ -5,10 +5,9 @@ import {
   Box, Typography, Button, TextField, Select, MenuItem,
   FormControl, InputLabel, Table, TableHead, TableBody, TableCell, TableRow, Paper, IconButton
 } from '@mui/material'
-import { Delete, Edit, Save } from '@mui/icons-material'
+import { Delete, Edit, Save, LockReset } from '@mui/icons-material'
 import { supabase } from '../../src/supabaseClient'
 import TopNav from '../../components/TopNav'
-import bcrypt from 'bcryptjs'
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([])
@@ -47,27 +46,22 @@ export default function AdminUsersPage() {
     }
   }
 
-  const getCompanyName = (companyId) => {
-    const company = companies.find(c => c.id === companyId)
-    return company ? company.name : '—'
-  }
-
   const handleAddUser = async () => {
     const { email, password, role, company_id } = newUser
-  
+
     if (!email || !password || !role || !company_id) {
       alert('⚠️ Заполните все поля')
       return
     }
-  
+
     const res = await fetch('/api/createUser', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, role, company_id })
     })
-  
+
     const result = await res.json()
-  
+
     if (!res.ok) {
       alert('❌ Ошибка: ' + result.error)
     } else {
@@ -77,19 +71,22 @@ export default function AdminUsersPage() {
     }
   }
 
+  const handleResetPassword = async (userId) => {
+    const newPassword = prompt('Введите новый пароль:')
+    if (!newPassword) return
 
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const res = await fetch('/api/resetPassword', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, new_password: newPassword })
+    })
 
-    const { error } = await supabase.from('users_custom').insert([
-      { email, password: hashedPassword, role, company_id, created_at: new Date().toISOString() }
-    ])
+    const result = await res.json()
 
-    if (error) {
-      console.error('❌ Ошибка добавления пользователя:', error.message)
-      alert('Ошибка добавления пользователя: ' + error.message)
+    if (!res.ok) {
+      alert('Ошибка при сбросе пароля: ' + result.error)
     } else {
-      setNewUser({ email: '', password: '', role: 'user', company_id: '' })
-      loadUsers()
+      alert('Пароль успешно обновлён')
     }
   }
 
@@ -114,6 +111,11 @@ export default function AdminUsersPage() {
       setEditedUser({})
       loadUsers()
     }
+  }
+
+  const getCompanyName = (companyId) => {
+    const company = companies.find(c => c.id === companyId)
+    return company ? company.name : '—'
   }
 
   return (
@@ -184,7 +186,6 @@ export default function AdminUsersPage() {
                   <TableCell>Email</TableCell>
                   <TableCell>Роль</TableCell>
                   <TableCell>Компания</TableCell>
-                  <TableCell>Дата добавления</TableCell>
                   <TableCell>Действия</TableCell>
                 </TableRow>
               </TableHead>
@@ -215,21 +216,7 @@ export default function AdminUsersPage() {
                         u.role || '—'
                       )}
                     </TableCell>
-                    <TableCell>
-                      {editingUserId === u.id ? (
-                        <Select
-                          value={String(editedUser.company_id || '')}
-                          onChange={e => setEditedUser({ ...editedUser, company_id: e.target.value })}
-                        >
-                          {companies.map(c => (
-                            <MenuItem key={c.id} value={String(c.id)}>{c.name}</MenuItem>
-                          ))}
-                        </Select>
-                      ) : (
-                        getCompanyName(u.company_id)
-                      )}
-                    </TableCell>
-                    <TableCell>{new Date(u.created_at).toLocaleString()}</TableCell>
+                    <TableCell>{getCompanyName(u.company_id)}</TableCell>
                     <TableCell>
                       {editingUserId === u.id ? (
                         <IconButton onClick={() => handleSaveEdit(u.id)}><Save /></IconButton>
@@ -243,6 +230,7 @@ export default function AdminUsersPage() {
                           })
                         }}><Edit /></IconButton>
                       )}
+                      <IconButton onClick={() => handleResetPassword(u.user_id)}><LockReset /></IconButton>
                       <IconButton onClick={() => handleDeleteUser(u.id)}><Delete /></IconButton>
                     </TableCell>
                   </TableRow>

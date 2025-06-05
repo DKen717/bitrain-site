@@ -17,6 +17,6 @@
     "dayjs": "^1.11.10",
     "@mui/icons-material": "^5.14.0",
     "bcryptjs": "^2.4.3",
-    "@supabase/auth-helpers-react": "^0.4.4"
+    "@supabase/auth-helpers-react": "^0.3.3"
   }
 }

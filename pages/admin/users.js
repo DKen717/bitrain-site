@@ -54,11 +54,29 @@ export default function AdminUsersPage() {
 
   const handleAddUser = async () => {
     const { email, password, role, company_id } = newUser
-
+  
     if (!email || !password || !role || !company_id) {
       alert('⚠️ Заполните все поля')
       return
     }
+  
+    const res = await fetch('/api/createUser', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, role, company_id })
+    })
+  
+    const result = await res.json()
+  
+    if (!res.ok) {
+      alert('❌ Ошибка: ' + result.error)
+    } else {
+      alert('✅ Пользователь создан')
+      setNewUser({ email: '', password: '', role: 'user', company_id: '' })
+      loadUsers()
+    }
+  }
+
 
     const hashedPassword = await bcrypt.hash(password, 10)
 

@@ -129,6 +129,17 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         </Select>
       </FormControl>
 
+      <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel>Порожний/груженный</InputLabel>
+          <Select value={filters.loadStatus}
+            onChange={(e) => setFilters(prev => ({ ...prev, loadStatus: e.target.value }))}
+            input={<OutlinedInput label="Порожний/груженный" />}>
+            <MenuItem value="">Все</MenuItem>
+            <MenuItem value="Порожний">Порожний</MenuItem>
+            <MenuItem value="Груженный">Груженный</MenuItem>
+          </Select>
+        </FormControl>
+
 
 
       <Autocomplete multiple options={wagonNumbers} getOptionLabel={(opt) => opt.toString()}

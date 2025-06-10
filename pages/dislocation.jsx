@@ -59,18 +59,6 @@ export default function Home() {
     fetchData()
   }
 
-  const handleExport = () => {
-  if (!data || data.length === 0) return
-
-  const worksheet = XLSX.utils.json_to_sheet(data)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Отчет')
-
-  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
-  const blob = new Blob([excelBuffer], { type: 'application/octet-stream' })
-
-  saveAs(blob, `Отчет_${new Date().toISOString().slice(0, 10)}.xlsx`)
-  }
 
 
   return (

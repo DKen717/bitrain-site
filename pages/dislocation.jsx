@@ -5,8 +5,7 @@ import ReportTable from '../components/ReportTable'
 import Pagination from '../components/Pagination'
 import { useReportData } from '../hooks/useReportData'
 import TopNav from '../components/TopNav'
-import * as XLSX from 'xlsx'
-import { saveAs } from 'file-saver'
+
 
 export default function Home() {
   const today = new Date().toISOString().slice(0, 10)
@@ -86,6 +85,7 @@ export default function Home() {
           onSearch={handleSearch}
           onClear={handleClear}
           loading={loading}
+          data={data}
         />
 
         {total !== null && (

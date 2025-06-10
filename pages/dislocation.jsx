@@ -20,7 +20,8 @@ export default function Home() {
     maxIdleDays: '',
     selectedOperationStations: [],
     selectedDepartureStations: [],
-    selectedDestinationStations: []
+    selectedDestinationStations: [],
+    loadStatus: ''
   })
 
   const [page, setPage] = useState(1)

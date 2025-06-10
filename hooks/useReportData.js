@@ -77,6 +77,11 @@ export function useReportData(filters, page, pageSize) {
           query = query.in('Станция назначения', filters.selectedDestinationStations)
       }
 
+      if (filters.loadStatus) {
+          query = query.eq('Порожний/груженный', filters.loadStatus)
+      }
+
+
       const from = (page - 1) * pageSize
       const to = from + pageSize - 1
       query = query.range(from, to)

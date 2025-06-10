@@ -15,36 +15,37 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
   const [destinationStations, setDestinationStations] = useState([])
 
 
-  useEffect(() => {
-    loadFilterOptions()
-  }, [])
-
-          const loadFilterOptions = async () => {
+    useEffect(() => {
+      loadFilterOptions()
+    }, [filters.fromDate, filters.toDate]) // можно вызвать при изменении даты
+    
+    const loadFilterOptions = async () => {
+      const params = {
+        from_date: filters.fromDate,
+        to_date: filters.toDate
+      }
+    
       try {
         // 🔹 Время отчета
-        const { data: timesRaw, error: timeErr } = await supabase.rpc('get_unique_times')
-        // 🔹 Номера вагонов
-        const { data: wagonsRaw, error: wagonErr } = await supabase.rpc('get_unique_wagons')
-        // 📥 Загрузка уникальных арендаторов
-        const { data: tenantsRaw, error: tenantErr } = await supabase.rpc('get_unique_tenants')
-        // 📥 Загрузка уникальных станций операций
-        const { data: opsRaw, error: opsErr } = await supabase.rpc('get_unique_operation_stations')
-        // 📥 Загрузка уникальных станция отправления
-        const { data: depRaw, error: depErr } = await supabase.rpc('get_unique_departure_stations')
-        // 📥 Загрузка уникальных станция назначения
-        const { data: destRaw, error: destErr } = await supabase.rpc('get_unique_destination_stations')
+        const { data: timesRaw, error: timeErr } = await supabase.rpc('get_unique_times', params)
         
-        if (tenantErr) {
-          console.error('❌ Ошибка загрузки арендаторов:', tenantErr)
-          return
-        }
-        if (timeErr || wagonErr) {
-          console.error('❌ Supabase ошибка:', timeErr || wagonErr)
-          return
-        }
-
-        if (opsErr || depErr || destErr) {
-          console.error('❌ Ошибка загрузки станций:', opsErr || depErr || destErr)
+        // 🔹 Номера вагонов
+        const { data: wagonsRaw, error: wagonErr } = await supabase.rpc('get_unique_wagons', params)
+        
+        // 🔹 Арендаторы
+        const { data: tenantsRaw, error: tenantErr } = await supabase.rpc('get_unique_tenants', params)
+        
+        // 🔹 Станция операции
+        const { data: opsRaw, error: opsErr } = await supabase.rpc('get_unique_operation_stations', params)
+    
+        // 🔹 Станция отправления
+        const { data: depRaw, error: depErr } = await supabase.rpc('get_unique_departure_stations', params)
+    
+        // 🔹 Станция назначения
+        const { data: destRaw, error: destErr } = await supabase.rpc('get_unique_destination_stations', params)
+    
+        if (timeErr || wagonErr || tenantErr || opsErr || depErr || destErr) {
+          console.error('❌ Ошибка загрузки фильтров:', timeErr || wagonErr || tenantErr || opsErr || depErr || destErr)
           return
         }
     

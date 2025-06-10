@@ -195,6 +195,11 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
       <Button onClick={onClear} variant="outlined" color="secondary">
         🧹 Очистить
       </Button>
+
+      <Button variant="outlined" onClick={handleExport} disabled={loading || data.length === 0}>
+      📤 Экспорт в Excel
+      </Button>
+      
     </Box>
   )
 }

@@ -79,7 +79,7 @@ export default function Home() {
       </Box>
 
       {/* 📖 О системе */}
-      <Container maxWidth="md" sx={{ py: 6 }}>
+      <Container maxWidth="md" sx={{ py: 6, textAlign: 'center'}}>
         <Typography variant="h5" fontWeight="bold" gutterBottom>
           О системе
         </Typography>

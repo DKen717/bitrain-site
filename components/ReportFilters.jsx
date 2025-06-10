@@ -93,20 +93,64 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
       }
     }
 
-      const handleExport = () => {
-      if (!data || data.length === 0) return
-    
-      // Преобразуем в Excel-формат
-      const worksheet = XLSX.utils.json_to_sheet(data)
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Отчет')
-    
-      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
-      const blob = new Blob([excelBuffer], { type: 'application/octet-stream' })
-    
-      const filename = `Отчет_${new Date().toISOString().slice(0, 10)}.xlsx`
-      saveAs(blob, filename)
+
+    const fetchAllDataForExport = async () => {
+    let query = supabase
+      .from('Dislocation_daily2')
+      .select(`
+        "Номер вагона",
+        "Дата совершения операции",
+        "Дата отчета",
+        "Время отчета",
+        "Станция операции",
+        "Станция отправления",
+        "Станция назначения",
+        "Наименование операции",
+        "Наименование груза",
+        "Тип вагона",
+        "Порожний/груженный",
+        "Рабочий/нерабочий",
+        "Дней без операции",
+        "Арендатор"
+      `)
+  
+    if (filters.fromDate) query = query.gte('Дата отчета', filters.fromDate)
+    if (filters.toDate) query = query.lte('Дата отчета', filters.toDate)
+    if (filters.selectedTimes.length > 0) query = query.in('Время отчета', filters.selectedTimes)
+    if (filters.selectedWagons.length > 0) query = query.in('Номер вагона', filters.selectedWagons)
+    if (filters.selectedTenants.length > 0) query = query.in('Арендатор', filters.selectedTenants)
+    if (filters.workingStatus) query = query.eq('Рабочий/нерабочий', filters.workingStatus)
+    if (filters.loadStatus) query = query.eq('Порожний/груженный', filters.loadStatus)
+    if (filters.minIdleDays) query = query.gte('Дней без операции', filters.minIdleDays)
+    if (filters.maxIdleDays) query = query.lte('Дней без операции', filters.maxIdleDays)
+    if (filters.selectedOperationStations.length > 0) query = query.in('Станция операции', filters.selectedOperationStations)
+    if (filters.selectedDepartureStations.length > 0) query = query.in('Станция отправления', filters.selectedDepartureStations)
+    if (filters.selectedDestinationStations.length > 0) query = query.in('Станция назначения', filters.selectedDestinationStations)
+  
+    const { data, error } = await query
+    if (error) {
+      console.error('❌ Ошибка при выгрузке всех данных:', error)
+      return []
     }
+  
+    return data
+  }
+
+
+  const handleExport = async () => {
+    const fullData = await fetchAllDataForExport()
+    if (!fullData || fullData.length === 0) return
+  
+    const worksheet = XLSX.utils.json_to_sheet(fullData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Отчет')
+  
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' })
+  
+    saveAs(blob, `Отчет_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
 
 
   return (

@@ -17,7 +17,10 @@ export default function Home() {
     selectedTenants: [],
     workingStatus: '',
     minIdleDays: '',
-    maxIdleDays: ''
+    maxIdleDays: '',
+    selectedOperationStations: [],
+    selectedDepartureStations: [],
+    selectedDestinationStations: []
   })
 
   const [page, setPage] = useState(1)
@@ -44,7 +47,10 @@ export default function Home() {
       selectedTenants: [],
       workingStatus: '',
       minIdleDays: '',
-      maxIdleDays: ''
+      maxIdleDays: '',
+      selectedOperationStations: [],
+      selectedDepartureStations: [],
+      selectedDestinationStations: []
     })
     setPage(1)
     fetchData()

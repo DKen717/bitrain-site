@@ -51,7 +51,8 @@ export default function Home() {
       maxIdleDays: '',
       selectedOperationStations: [],
       selectedDepartureStations: [],
-      selectedDestinationStations: []
+      selectedDestinationStations: [],
+      loadStatus: ''
     })
     setPage(1)
     fetchData()

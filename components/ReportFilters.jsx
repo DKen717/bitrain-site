@@ -10,6 +10,10 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
   const [reportTimes, setReportTimes] = useState([])
   const [wagonNumbers, setWagonNumbers] = useState([])
   const [tenantOptions, setTenantOptions] = useState([])
+  const [operationStations, setOperationStations] = useState([])
+  const [departureStations, setDepartureStations] = useState([])
+  const [destinationStations, setDestinationStations] = useState([])
+
 
   useEffect(() => {
     loadFilterOptions()
@@ -23,6 +27,12 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         const { data: wagonsRaw, error: wagonErr } = await supabase.rpc('get_unique_wagons')
         // 📥 Загрузка уникальных арендаторов
         const { data: tenantsRaw, error: tenantErr } = await supabase.rpc('get_unique_tenants')
+        // 📥 Загрузка уникальных станций операций
+        const { data: opsRaw, error: opsErr } = await supabase.rpc('get_unique_operation_stations')
+        // 📥 Загрузка уникальных станция отправления
+        const { data: depRaw, error: depErr } = await supabase.rpc('get_unique_departure_stations')
+        // 📥 Загрузка уникальных станция назначения
+        const { data: destRaw, error: destErr } = await supabase.rpc('get_unique_destination_stations')
         
         if (tenantErr) {
           console.error('❌ Ошибка загрузки арендаторов:', tenantErr)
@@ -30,6 +40,11 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         }
         if (timeErr || wagonErr) {
           console.error('❌ Supabase ошибка:', timeErr || wagonErr)
+          return
+        }
+
+        if (opsErr || depErr || destErr) {
+          console.error('❌ Ошибка загрузки станций:', opsErr || depErr || destErr)
           return
         }
     
@@ -55,6 +70,10 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         const tenants = Array.from(new Set(
             tenantsRaw.map(row => row['Арендатор']?.toString()).filter(Boolean)
           )).sort()
+
+        const opStations = opsRaw.map(r => r['Станция операции']).filter(Boolean).sort()
+        const depStations = depRaw.map(r => r['Станция отправления']).filter(Boolean).sort()
+        const destStations = destRaw.map(r => r['Станция назначения']).filter(Boolean).sort()
     
         // 🔍 Итог
         console.log('✅ Готовые времена:', times)
@@ -63,6 +82,9 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         setReportTimes(times)
         setWagonNumbers(wagons)
         setTenantOptions(tenants)
+        setOperationStations(opStations)
+        setDepartureStations(depStations)
+        setDestinationStations(destStations)
       } catch (err) {
         console.error('❌ Ошибка выполнения loadFilterOptions:', err)
       }
@@ -121,6 +143,30 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         filterSelectedOptions
         renderInput={(params) => (<TextField {...params} label="Арендатор" placeholder="Введите" size="small" />)}
         sx={{ minWidth: 250 }} />
+
+      <Autocomplete multiple options={operationStations}
+        value={filters.selectedOperationStations}
+        onChange={(e, newValue) => setFilters(prev => ({ ...prev, selectedOperationStations: newValue }))}
+        filterSelectedOptions
+        renderInput={(params) => <TextField {...params} label="Станция операции" placeholder="Введите" size="small" />}
+        sx={{ minWidth: 250 }}
+      />
+      
+      <Autocomplete multiple options={departureStations}
+        value={filters.selectedDepartureStations}
+        onChange={(e, newValue) => setFilters(prev => ({ ...prev, selectedDepartureStations: newValue }))}
+        filterSelectedOptions
+        renderInput={(params) => <TextField {...params} label="Станция отправления" placeholder="Введите" size="small" />}
+        sx={{ minWidth: 250 }}
+      />
+      
+      <Autocomplete multiple options={destinationStations}
+        value={filters.selectedDestinationStations}
+        onChange={(e, newValue) => setFilters(prev => ({ ...prev, selectedDestinationStations: newValue }))}
+        filterSelectedOptions
+        renderInput={(params) => <TextField {...params} label="Станция назначения" placeholder="Введите" size="small" />}
+        sx={{ minWidth: 250 }}
+      />
 
       <TextField type="number" label="Дней без операции: от" value={filters.minIdleDays}
         onChange={(e) => setFilters(prev => ({ ...prev, minIdleDays: e.target.value }))}

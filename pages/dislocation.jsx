@@ -5,6 +5,8 @@ import ReportTable from '../components/ReportTable'
 import Pagination from '../components/Pagination'
 import { useReportData } from '../hooks/useReportData'
 import TopNav from '../components/TopNav'
+import * as XLSX from 'xlsx'
+import { saveAs } from 'file-saver'
 
 export default function Home() {
   const today = new Date().toISOString().slice(0, 10)
@@ -58,6 +60,20 @@ export default function Home() {
     fetchData()
   }
 
+  const handleExport = () => {
+  if (!data || data.length === 0) return
+
+  const worksheet = XLSX.utils.json_to_sheet(data)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Отчет')
+
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+  const blob = new Blob([excelBuffer], { type: 'application/octet-stream' })
+
+  saveAs(blob, `Отчет_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
+
   return (
     <>
       <TopNav />
@@ -73,8 +89,11 @@ export default function Home() {
         />
 
         {total !== null && (
-          <Box sx={{ marginY: '1rem' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginY: '1rem' }}>
             <strong>🔎 Найдено строк: {total}</strong>
+            <Button variant="outlined" onClick={handleExport} disabled={loading || data.length === 0}>
+              📤 Экспорт в Excel
+            </Button>
           </Box>
         )}
 

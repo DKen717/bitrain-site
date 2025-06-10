@@ -5,8 +5,10 @@ import {
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 import { supabase } from '../src/supabaseClient'
+import * as XLSX from 'xlsx'
+import { saveAs } from 'file-saver'
 
-export default function ReportFilters({ filters, setFilters, onSearch, onClear, loading }) {
+export default function ReportFilters({ filters, setFilters, onSearch, onClear, loading, data }) {
   const [reportTimes, setReportTimes] = useState([])
   const [wagonNumbers, setWagonNumbers] = useState([])
   const [tenantOptions, setTenantOptions] = useState([])
@@ -89,6 +91,21 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
       } catch (err) {
         console.error('❌ Ошибка выполнения loadFilterOptions:', err)
       }
+    }
+
+      const handleExport = () => {
+      if (!data || data.length === 0) return
+    
+      // Преобразуем в Excel-формат
+      const worksheet = XLSX.utils.json_to_sheet(data)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Отчет')
+    
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([excelBuffer], { type: 'application/octet-stream' })
+    
+      const filename = `Отчет_${new Date().toISOString().slice(0, 10)}.xlsx`
+      saveAs(blob, filename)
     }
 
 

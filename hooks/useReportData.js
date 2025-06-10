@@ -78,7 +78,7 @@ export function useReportData(filters, page, pageSize) {
       }
 
       if (filters.loadStatus) {
-          query = query.eq('Порожний/груженный', filters.loadStatus)
+          query = query.eq('"Порожний/груженный"', filters.loadStatus)
       }
 
 

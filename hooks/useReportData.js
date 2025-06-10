@@ -65,6 +65,18 @@ export function useReportData(filters, page, pageSize) {
           query = query.in('Арендатор', filters.selectedTenants)
       }
 
+      if (filters.selectedOperationStations?.length > 0) {
+          query = query.in('Станция операции', filters.selectedOperationStations)
+      }
+     
+      if (filters.selectedDepartureStations?.length > 0) {
+          query = query.in('Станция отправления', filters.selectedDepartureStations)
+      }
+      
+      if (filters.selectedDestinationStations?.length > 0) {
+          query = query.in('Станция назначения', filters.selectedDestinationStations)
+      }
+
       const from = (page - 1) * pageSize
       const to = from + pageSize - 1
       query = query.range(from, to)

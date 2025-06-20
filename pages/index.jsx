@@ -39,22 +39,6 @@ export default function Home() {
 
   return (
     <>
-      {/* 🔝 Шапка */}
-      <AppBar position="fixed" elevation={0} sx={{ backgroundColor: '#ffc054', color: '#000', width: '100%', top: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Box sx={{ fontWeight: 'bold', fontSize: '1.2rem' }}>
-            <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-              BI Train
-            </Link>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button variant="outlined" onClick={handleLogin} sx={{ fontWeight: 'bold', borderRadius: '999px', color: '#000' }}>
-              Вход
-            </Button>
-          </Box>
-        </Toolbar>
-      </AppBar>
-
       {/* 💡 Hero */}
       <Box sx={{ py: 8, backgroundColor: '#ffffff' }}>
         <Container maxWidth="md" sx={{ textAlign: 'center' }}>

@@ -33,9 +33,9 @@ export default function Dashboard() {
     const formattedDate = selectedDate.format('YYYY-MM-DD')
     const { data: timesData, error: timesError } = await supabase
       .from('Dislocation_daily2')
-      .select('Время отчета')
+      .select('"Время отчета"')
       .eq('Дата отчета', formattedDate)
-      .order('Время отчета', { ascending: true })
+      .order('"Время отчета"', { ascending: true })
     
     if (timesError) {
       console.error('Ошибка при загрузке времен:', timesError)

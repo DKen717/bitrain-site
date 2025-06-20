@@ -1,4 +1,4 @@
-import { Box, Typography, Grid, Card, CardContent, TextField } from '@mui/material'
+import { Box, Typography, Grid, Card, CardContent, TextField, MenuItem, Select, FormControl, InputLabel } from '@mui/material'
 import TopNav from '../components/TopNav'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
@@ -9,6 +9,8 @@ import { supabase } from '../src/supabaseClient'
 
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(dayjs())
+  const [availableTimes, setAvailableTimes] = useState([])
+  const [selectedTime, setSelectedTime] = useState('')
   const [summary, setSummary] = useState({
     total: 0,
     working: 0,
@@ -18,12 +20,32 @@ export default function Dashboard() {
   })
 
   useEffect(() => {
-    loadDashboardData()
+    loadAvailableTimes()
   }, [selectedDate])
+
+  useEffect(() => {
+    if (selectedTime) {
+      loadDashboardData()
+    }
+  }, [selectedDate, selectedTime])
+
+  const loadAvailableTimes = async () => {
+    const formattedDate = selectedDate.format('YYYY-MM-DD')
+    const { data, error } = await supabase
+      .from('Dislocation_daily2')
+      .select('Время отчета')
+      .eq('Дата отчета', formattedDate)
+      .order('Время отчета', { ascending: true })
+      .then(res => res.data ? [...new Set(res.data.map(r => r['Время отчета']))] : [])
+
+    setAvailableTimes(data)
+    if (data.length > 0) {
+      setSelectedTime(data[data.length - 1]) // выбрать последнее (самое свежее)
+    }
+  }
 
   const loadDashboardData = async () => {
     const formattedDate = selectedDate.format('YYYY-MM-DD')
-
     const { data: wagons, error } = await supabase
       .from('Dislocation_daily2')
       .select(`
@@ -33,6 +55,7 @@ export default function Dashboard() {
         "Дней без операции"
       `)
       .eq('Дата отчета', formattedDate)
+      .eq('Время отчета', selectedTime)
 
     if (error) {
       console.error('Ошибка при загрузке данных:', error)
@@ -72,6 +95,19 @@ export default function Dashboard() {
             slotProps={{ textField: { fullWidth: true, margin: 'normal' } }}
           />
         </LocalizationProvider>
+
+        <FormControl fullWidth sx={{ mt: 2 }}>
+          <InputLabel>Время отчета</InputLabel>
+          <Select
+            value={selectedTime}
+            label="Время отчета"
+            onChange={(e) => setSelectedTime(e.target.value)}
+          >
+            {availableTimes.map((time, idx) => (
+              <MenuItem key={idx} value={time}>{time}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
         <Grid container spacing={2} mt={2}>
           <Grid item xs={12} md={4}>

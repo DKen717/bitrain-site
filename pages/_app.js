@@ -14,6 +14,10 @@ const theme = createTheme({
 })
 
 export default function MyApp({ Component, pageProps }) {
+  const user = {
+    role: 'superadmin' // пока заглушка
+  }
+
   return (
     <>
       <Head>
@@ -21,11 +25,9 @@ export default function MyApp({ Component, pageProps }) {
       </Head>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        {/* глобальная шапка */}
-        <TopNav />
-        
-        {/* DatePicker Provider + Container */}
+
         <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <TopNav user={user} />
           <Container maxWidth="xl" sx={{ mt: 2 }}>
             <Component {...pageProps} />
           </Container>

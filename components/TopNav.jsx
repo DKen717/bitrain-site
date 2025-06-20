@@ -1,22 +1,38 @@
-import { AppBar, Toolbar, Typography, Button } from '@mui/material'
+// components/TopNav.jsx
+import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 
-export default function TopNav() {
+export default function TopNav({ user }) {
+  const router = useRouter()
+  const isIndexPage = router.pathname === '/'
+
   return (
-    <AppBar position="static" sx={{ backgroundColor: '#f6d46b' }}>
+    <AppBar position="static">
       <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1, color: '#000000' }}>
+        <Typography variant="h6" sx={{ flexGrow: 1 }}>
           BI Train
         </Typography>
-        <Link href="/" passHref>
-          <Button sx={{ color: '#000000' }}>Главная</Button>
-        </Link>
-        <Link href="/dislocation" passHref>
-          <Button sx={{ color: '#000000' }}>Дислокация</Button>
-        </Link>
-        <Link href="/dashboard" passHref>
-          <Button sx={{ color: '#000000' }}>Дэшборд</Button>
-        </Link>
+
+        <Box>
+          {isIndexPage ? (
+            // На главной странице — только кнопка Вход
+            <Button color="inherit" component={Link} href="/login">Вход</Button>
+          ) : (
+            <>
+              <Button color="inherit" component={Link} href="/">Главная</Button>
+              <Button color="inherit" component={Link} href="/dislocation">Дислокация</Button>
+              <Button color="inherit" component={Link} href="/dashboard">Дэшборд</Button>
+
+              {user?.role === 'superadmin' && (
+                <>
+                  <Button color="inherit" component={Link} href="/admin/users">Пользователи</Button>
+                  <Button color="inherit" component={Link} href="/admin/companies">Компании</Button>
+                </>
+              )}
+            </>
+          )}
+        </Box>
       </Toolbar>
     </AppBar>
   )

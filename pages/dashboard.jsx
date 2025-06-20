@@ -72,7 +72,7 @@ export default function Dashboard() {
 
     const total = wagons.length
     const working = wagons.filter(w => w['Рабочий/нерабочий'] === 'Рабочий').length
-    const notWorking = wagons.filter(w => w['Рабочий/нерабочий'] === 'Не рабочий').length
+    const notWorking = wagons.filter(w => w['Рабочий/нерабочий'] === 'Нерабочий').length
 
     const tenants = {}
     wagons.forEach(w => {

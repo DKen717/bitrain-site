@@ -31,18 +31,25 @@ export default function Dashboard() {
 
   const loadAvailableTimes = async () => {
     const formattedDate = selectedDate.format('YYYY-MM-DD')
-    const { data, error } = await supabase
+    const { data: timesData, error: timesError } = await supabase
       .from('Dislocation_daily2')
       .select('Время отчета')
       .eq('Дата отчета', formattedDate)
       .order('Время отчета', { ascending: true })
-      .then(res => res.data ? [...new Set(res.data.map(r => r['Время отчета']))] : [])
-
-    setAvailableTimes(data)
-    if (data.length > 0) {
-      setSelectedTime(data[data.length - 1]) // выбрать последнее (самое свежее)
+    
+    if (timesError) {
+      console.error('Ошибка при загрузке времен:', timesError)
+      setAvailableTimes([])
+      setSelectedTime('')
+      return
     }
-  }
+    
+    const uniqueTimes = [...new Set(timesData.map(r => r['Время отчета']))]
+    
+    setAvailableTimes(uniqueTimes)
+    if (uniqueTimes.length > 0) {
+      setSelectedTime(uniqueTimes[uniqueTimes.length - 1])
+    }
 
   const loadDashboardData = async () => {
     const formattedDate = selectedDate.format('YYYY-MM-DD')

@@ -1,7 +1,10 @@
 // pages/_app.js
-import { CssBaseline } from '@mui/material'
+import { CssBaseline, Container } from '@mui/material'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import Head from 'next/head'
+import TopNav from '../components/TopNav'
 
 const theme = createTheme({
   typography: {
@@ -18,7 +21,15 @@ export default function MyApp({ Component, pageProps }) {
       </Head>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Component {...pageProps} />
+        {/* глобальная шапка */}
+        <TopNav />
+        
+        {/* DatePicker Provider + Container */}
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <Container maxWidth="xl" sx={{ mt: 2 }}>
+            <Component {...pageProps} />
+          </Container>
+        </LocalizationProvider>
       </ThemeProvider>
     </>
   )

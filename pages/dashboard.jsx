@@ -50,6 +50,7 @@ export default function Dashboard() {
     if (uniqueTimes.length > 0) {
       setSelectedTime(uniqueTimes[uniqueTimes.length - 1])
     }
+    }
 
   const loadDashboardData = async () => {
     const formattedDate = selectedDate.format('YYYY-MM-DD')

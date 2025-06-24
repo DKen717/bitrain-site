@@ -11,7 +11,7 @@ export default function ReportTable({ data, loading, page, pageSize }) {
   }
 
   return (
-    <table border="1" cellPadding="6" style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <table border="1" cellPadding="6" style={{ width: '100%', borderCollapse: 'collapse', userSelect: 'text' }}>
       <thead style={{ backgroundColor: '#f0f0f0' }}>
         <tr>
           <th>#</th>

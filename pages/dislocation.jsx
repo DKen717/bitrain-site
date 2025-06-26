@@ -63,7 +63,6 @@ export default function Home() {
 
   return (
     <>
-      <TopNav />
       <Box sx={{ padding: '2rem', fontFamily: 'Arial', fontSize: '0.65rem' }}>
         <Typography variant="h4" gutterBottom>Aiway Logistic — отчет</Typography>
 

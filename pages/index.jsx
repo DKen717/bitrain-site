@@ -29,7 +29,6 @@ export default function Home() {
       router.push('/home')
     }
   }, [session])
-  }
 
   return (
     <>

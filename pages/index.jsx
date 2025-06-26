@@ -29,12 +29,6 @@ export default function Home() {
       router.push('/home')
     }
   }, [session])
-
-  const handleLogin = async () => {
-    const email = prompt('Email:')
-    const password = prompt('Пароль:')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) alert('Ошибка входа: ' + error.message)
   }
 
   return (

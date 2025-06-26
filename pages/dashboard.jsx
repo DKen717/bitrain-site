@@ -91,7 +91,6 @@ export default function Dashboard() {
 
   return (
     <>
-      <TopNav />
       <Box sx={{ padding: '2rem' }}>
         <Typography variant="h4" gutterBottom>Дэшборд</Typography>
 

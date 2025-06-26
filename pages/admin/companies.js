@@ -76,7 +76,6 @@ export default function AdminCompanies() {
 
   return (
     <>
-      <TopNav />
       <Box sx={{ padding: '2rem' }}>
         <Typography variant="h5" gutterBottom>Управление компаниями</Typography>
 

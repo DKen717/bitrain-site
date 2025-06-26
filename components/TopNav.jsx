@@ -10,9 +10,14 @@ export default function TopNav({ user }) {
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          BI Train
-        </Typography>
+      <Typography 
+        variant="h6" 
+        sx={{ flexGrow: 1, cursor: 'pointer', textDecoration: 'none' }} 
+        component={Link} 
+        href="/"
+      >
+        BI Train
+      </Typography>
 
         {/* 🔽 Навигация скрывается на /login */}
         {!isLoginPage && (

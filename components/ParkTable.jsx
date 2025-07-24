@@ -20,7 +20,7 @@ export default function ParkTable() {
 
   async function loadData() {
     const { data, error } = await supabase
-      .from('arendatori')
+      .from('Arendatori')
       .select('*')
       .eq('is_active', true)
       .order('wagon_number', { ascending: true })

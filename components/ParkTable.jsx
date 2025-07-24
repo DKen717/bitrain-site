@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Table, TableHead, TableRow, TableCell, TableBody,
-  TextField, Button, Dialog
+  TextField, Button, Dialog, Typography
 } from '@mui/material'
 import { supabase } from '../src/supabaseClient'
 import ParkHistoryDialog from './ParkHistoryDialog'

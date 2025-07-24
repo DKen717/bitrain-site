@@ -23,7 +23,7 @@ export default function ParkTable() {
       .from('Arendatori')
       .select('*')
       .eq('is_active', true)
-      .order('wagon_number', { ascending: true })
+      .order('Wagon_number', { ascending: true })
 
     console.log('🚂 arendatori data:', data)
     console.log('⚠️ error:', error)
@@ -77,9 +77,9 @@ export default function ParkTable() {
             .map(w => (
               <TableRow key={w.id}>
                 <TableCell>{w.wagon_number}</TableCell>
-                <TableCell>{w.arendator}</TableCell>
-                <TableCell>{w.transfer_date}</TableCell>
-                <TableCell>{new Date(w.change_date).toLocaleString()}</TableCell>
+                <TableCell>{w.name_arendator}</TableCell>
+                <TableCell>{w.data_peredachi}</TableCell>
+                <TableCell>{new Date(w.data_izmeneniya).toLocaleString()}</TableCell>
                 <TableCell>
                   <Button onClick={() => handleHistory(w)}>История</Button>
                   <Button onClick={() => handleEdit(w)}>Изменить</Button>

@@ -7,6 +7,15 @@ import { supabase } from '../src/supabaseClient'
 import ParkHistoryDialog from './ParkHistoryDialog'
 import ParkEditDialog from './ParkEditDialog'
 
+function formatDate(dateString) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+  return `${day}.${month}.${year}`
+}
+
 export default function ParkTable() {
   const [wagons, setWagons] = useState([])
   const [filters, setFilters] = useState({ wagon: '', arendator: '' })
@@ -58,6 +67,10 @@ export default function ParkTable() {
       />
       <Button variant="outlined" onClick={loadData}>Обновить</Button>
 
+      <Typography sx={{ mt: 2 }}>
+      Показано: {wagons.length} вагонов
+      </Typography>
+
       <Table sx={{ mt: 2 }}>
         <TableHead>
           <TableRow>
@@ -78,8 +91,8 @@ export default function ParkTable() {
               <TableRow key={w.id}>
                 <TableCell>{w.wagon_number}</TableCell>
                 <TableCell>{w.name_arendator}</TableCell>
-                <TableCell>{w.data_peredachi}</TableCell>
-                <TableCell>{new Date(w.data_izmeneniya).toLocaleString()}</TableCell>
+                <TableCell>{formatDate(w.data_peredachi)}</TableCell>
+                <TableCell>{formatDate(w.data_izmeneniya)}</TableCell>
                 <TableCell>
                   <Button onClick={() => handleHistory(w)}>История</Button>
                   <Button onClick={() => handleEdit(w)}>Изменить</Button>

@@ -25,6 +25,9 @@ export default function ParkTable() {
       .eq('is_active', true)
       .order('wagon_number', { ascending: true })
 
+    console.log('🚂 arendatori data:', data)
+    console.log('⚠️ error:', error)
+
     if (error) console.error(error)
     else setWagons(data)
   }

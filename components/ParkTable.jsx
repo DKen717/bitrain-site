@@ -23,7 +23,7 @@ export default function ParkTable() {
       .from('Arendatori')
       .select('*')
       .eq('is_active', true)
-      .order('Wagon_number', { ascending: true })
+      .order('wagon_number', { ascending: true })
 
     console.log('🚂 arendatori data:', data)
     console.log('⚠️ error:', error)

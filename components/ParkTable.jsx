@@ -6,6 +6,8 @@ import {
 import { supabase } from '../src/supabaseClient'
 import ParkHistoryDialog from './ParkHistoryDialog'
 import ParkEditDialog from './ParkEditDialog'
+import AddTransferDialog from './AddTransferDialog'
+
 
 export default function ParkTable() {
   const [wagons, setWagons] = useState([])
@@ -42,6 +44,9 @@ export default function ParkTable() {
     setShowEdit(true)
   }
 
+  const [showAddDialog, setShowAddDialog] = useState(false)
+
+  
 function formatDate(dateString) {
   if (!dateString) return ''
   const date = new Date(dateString)
@@ -67,6 +72,10 @@ function formatDate(dateString) {
       />
       <Button variant="outlined" onClick={loadData}>Обновить</Button>
 
+      <Button variant="contained" sx={{ mt: 2 }} onClick={() => setShowAddDialog(true)}>
+        Добавить передачу
+      </Button>
+      
       <Typography sx={{ mt: 2 }}>
       Показано: {wagons.length} вагонов
       </Typography>
@@ -114,6 +123,13 @@ function formatDate(dateString) {
         wagon={selectedWagon}
         onUpdate={loadData}
       />
+
+      <AddTransferDialog
+        open={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onSaved={loadData}
+      />
+
     </>
   )
 }

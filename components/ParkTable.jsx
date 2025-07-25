@@ -25,6 +25,7 @@ export default function ParkTable() {
       .from('Arendatori')
       .select('*')
       .eq('is_active', true)
+      .eq('is_deleted', false)
       .order('wagon_number', { ascending: true })
 
     console.log('🚂 arendatori data:', data)

@@ -72,6 +72,7 @@ function formatDate(dateString) {
       />
       <Button variant="outlined" onClick={loadData}>Обновить</Button>
 
+      
       <Button variant="contained" sx={{ mt: 2 }} onClick={() => setShowAddDialog(true)}>
         Добавить передачу
       </Button>
@@ -86,7 +87,7 @@ function formatDate(dateString) {
             <TableCell>Номер вагона</TableCell>
             <TableCell>Арендатор</TableCell>
             <TableCell>Дата передачи</TableCell>
-            <TableCell>Изменено</TableCell>
+            <TableCell>Добавлен</TableCell>
             <TableCell>Действия</TableCell>
           </TableRow>
         </TableHead>
@@ -101,7 +102,7 @@ function formatDate(dateString) {
                 <TableCell>{w.wagon_number}</TableCell>
                 <TableCell>{w.name_arendator}</TableCell>
                 <TableCell>{formatDate(w.data_peredachi)}</TableCell>
-                <TableCell>{formatDate(w.data_izmeneniya)}</TableCell>
+                <TableCell>{formatDate(w.data_dobavlen)}</TableCell>
                 <TableCell>
                   <Button onClick={() => handleHistory(w)}>История</Button>
                   <Button onClick={() => handleEdit(w)}>Изменить</Button>

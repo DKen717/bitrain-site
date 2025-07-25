@@ -56,6 +56,23 @@ function formatDate(dateString) {
   const year = date.getFullYear()
   return `${day}.${month}.${year}`
 }
+
+  const handleDelete = async (row) => {
+  const confirm = window.confirm(`Удалить вагон ${row.wagon_number} из активного парка?`)
+  if (!confirm) return
+
+  const { error } = await supabase
+    .from('Arendatori')
+    .update({ is_active: false, is_deleted: true })
+    .eq('id', row.id)
+
+  if (error) {
+    alert('Ошибка при удалении: ' + error.message)
+  } else {
+    loadData()
+  }
+}
+
   
   return (
     <>
@@ -107,6 +124,7 @@ function formatDate(dateString) {
                 <TableCell>
                   <Button onClick={() => handleHistory(w)}>История</Button>
                   <Button onClick={() => handleEdit(w)}>Изменить</Button>
+                  <Button color="error" onClick={() => handleDelete(w)}>Удалить</Button>
                 </TableCell>
               </TableRow>
             ))}

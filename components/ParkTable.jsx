@@ -6,7 +6,6 @@ import {
 import Autocomplete from '@mui/material/Autocomplete'
 import { supabase } from '../src/supabaseClient'
 import ParkHistoryDialog from './ParkHistoryDialog'
-import ParkEditDialog from './ParkEditDialog'
 import AddTransferDialog from './AddTransferDialog'
 
 export default function ParkTable() {
@@ -17,7 +16,6 @@ export default function ParkTable() {
 
   const [selectedWagon, setSelectedWagon] = useState(null)
   const [showHistory, setShowHistory] = useState(false)
-  const [showEdit, setShowEdit] = useState(false)
   const [showAddDialog, setShowAddDialog] = useState(false)
 
   useEffect(() => {
@@ -62,10 +60,6 @@ export default function ParkTable() {
     setShowHistory(true)
   }
 
-  const handleEdit = (wagon) => {
-    setSelectedWagon(wagon)
-    setShowEdit(true)
-  }
 
   const handleDelete = async (row) => {
     const confirm = window.confirm(`Удалить вагон ${row.wagon_number} из активного парка?`)
@@ -157,7 +151,6 @@ export default function ParkTable() {
                 <TableCell>{formatDate(w.data_dobavlen)}</TableCell>
                 <TableCell>
                   <Button onClick={() => handleHistory(w)}>История</Button>
-                  <Button onClick={() => handleEdit(w)}>Изменить</Button>
                   <Button color="error" onClick={() => handleDelete(w)}>Удалить</Button>
                 </TableCell>
               </TableRow>
@@ -171,12 +164,6 @@ export default function ParkTable() {
         wagon={selectedWagon}
       />
 
-      <ParkEditDialog
-        open={showEdit}
-        onClose={() => setShowEdit(false)}
-        wagon={selectedWagon}
-        onUpdate={loadData}
-      />
 
       <AddTransferDialog
         open={showAddDialog}

@@ -42,7 +42,6 @@ export default function CounterpartiesPage() {
       loadCounterparties()
     }
   }
-  console.log(data, error)
 
   
   const loadCounterparties = async () => {
@@ -86,7 +85,6 @@ export default function CounterpartiesPage() {
       alert('Ошибка: ' + error.message)
     }
   }
-console.log('payload:', payload)
 
   const handleClose = () => {
     setOpen(false)

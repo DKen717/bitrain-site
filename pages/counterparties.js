@@ -83,6 +83,7 @@ export default function CounterpartiesPage() {
     } else {
       alert('Ошибка: ' + error.message)
     }
+    console.log('payload:', payload)
   }
 
   const handleClose = () => {

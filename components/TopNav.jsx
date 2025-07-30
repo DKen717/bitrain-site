@@ -30,6 +30,7 @@ export default function TopNav({ user }) {
                 <Button color="inherit" component={Link} href="/dislocation">Дислокация</Button>
                 <Button color="inherit" component={Link} href="/dashboard">Дэшборд</Button>
                 <Button color="inherit" component={Link} href="/my-ps">Мой ПС</Button>
+                <Button color="inherit" component={Link} href="/counterparties">Контрагенты</Button>
 
                 {user?.role === 'superadmin' && (
                   <>

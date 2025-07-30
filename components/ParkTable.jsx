@@ -11,7 +11,7 @@ import AddTransferDialog from './AddTransferDialog'
 
 export default function ParkTable() {
   const [wagons, setWagons] = useState([])
-  const [filters, setFilters] = useState({ wagon: '', arendator: '' })
+  const [filters, setFilters] = useState({ wagons: [], arendators: [] })
   const [wagonOptions, setWagonOptions] = useState([])
   const [arendatorOptions, setArendatorOptions] = useState([])
 
@@ -96,27 +96,25 @@ export default function ParkTable() {
     <>
       <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
         <Autocomplete
+          multiple
           options={wagonOptions}
-          value={filters.wagon}
-          onChange={(e, newValue) =>
-            setFilters({ ...filters, wagon: newValue || '' })
-          }
+          value={filters.wagons}
+          onChange={(e, newValue) => setFilters({ ...filters, wagons: newValue })}
           renderInput={(params) => (
-            <TextField {...params} label="Номер вагона" size="small" />
+            <TextField {...params} label="Номера вагонов" size="small" />
           )}
-          sx={{ width: 200 }}
+          sx={{ width: 300 }}
         />
 
         <Autocomplete
+          multiple
           options={arendatorOptions}
-          value={filters.arendator}
-          onChange={(e, newValue) =>
-            setFilters({ ...filters, arendator: newValue || '' })
-          }
+          value={filters.arendators}
+          onChange={(e, newValue) => setFilters({ ...filters, arendators: newValue })}
           renderInput={(params) => (
-            <TextField {...params} label="Арендатор" size="small" />
+            <TextField {...params} label="Арендаторы" size="small" />
           )}
-          sx={{ width: 250 }}
+          sx={{ width: 300 }}
         />
 
         <Button variant="outlined" onClick={loadData}>Обновить</Button>
@@ -127,10 +125,12 @@ export default function ParkTable() {
       </Button>
 
       <Typography sx={{ mt: 2 }}>
-        Показано: {wagons.filter(w =>
-          (!filters.wagon || w.wagon_number === filters.wagon) &&
-          (!filters.arendator || w.name_arendator === filters.arendator)
-        ).length} вагонов
+        Показано: {
+          wagons.filter(w =>
+            (filters.wagons.length === 0 || filters.wagons.includes(w.wagon_number)) &&
+            (filters.arendators.length === 0 || filters.arendators.includes(w.name_arendator))
+          ).length
+        } вагонов
       </Typography>
 
       <Table sx={{ mt: 2 }}>
@@ -146,10 +146,10 @@ export default function ParkTable() {
         <TableBody>
           {wagons
             .filter(w =>
-              (!filters.wagon || w.wagon_number === filters.wagon) &&
-              (!filters.arendator || w.name_arendator === filters.arendator)
-            )
-            .map(w => (
+                (filters.wagons.length === 0 || filters.wagons.includes(w.wagon_number)) &&
+                (filters.arendators.length === 0 || filters.arendators.includes(w.name_arendator))
+              )
+              .map(w => (
               <TableRow key={w.id}>
                 <TableCell>{w.wagon_number}</TableCell>
                 <TableCell>{w.name_arendator}</TableCell>

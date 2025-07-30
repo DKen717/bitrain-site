@@ -38,6 +38,7 @@ export default function CounterpartiesPage() {
         .select('*')
         .eq('id', user.id)
         .single()
+      console.log(data, error)
       setUserProfile(profile)
       loadCounterparties()
     }

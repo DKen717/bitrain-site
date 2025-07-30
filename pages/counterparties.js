@@ -42,13 +42,6 @@ export default function CounterpartiesPage() {
       loadCounterparties()
     }
   }
-
-  const { data, error } = await supabase
-    .from('users_custom')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-  
   console.log(data, error)
 
   

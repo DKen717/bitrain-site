@@ -1,23 +1,28 @@
 import { useEffect, useState } from 'react'
 import {
   Table, TableHead, TableRow, TableCell, TableBody,
-  TextField, Button, Dialog, Typography
+  TextField, Button, Typography
 } from '@mui/material'
+import Autocomplete from '@mui/material/Autocomplete'
 import { supabase } from '../src/supabaseClient'
 import ParkHistoryDialog from './ParkHistoryDialog'
 import ParkEditDialog from './ParkEditDialog'
 import AddTransferDialog from './AddTransferDialog'
 
-
 export default function ParkTable() {
   const [wagons, setWagons] = useState([])
   const [filters, setFilters] = useState({ wagon: '', arendator: '' })
+  const [wagonOptions, setWagonOptions] = useState([])
+  const [arendatorOptions, setArendatorOptions] = useState([])
+
   const [selectedWagon, setSelectedWagon] = useState(null)
   const [showHistory, setShowHistory] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
+  const [showAddDialog, setShowAddDialog] = useState(false)
 
   useEffect(() => {
     loadData()
+    loadFilterOptions()
   }, [])
 
   async function loadData() {
@@ -28,11 +33,28 @@ export default function ParkTable() {
       .eq('is_deleted', false)
       .order('wagon_number', { ascending: true })
 
-    console.log('🚂 arendatori data:', data)
-    console.log('⚠️ error:', error)
-
-    if (error) console.error(error)
+    if (error) console.error('⚠️ loadData error:', error)
     else setWagons(data)
+  }
+
+  async function loadFilterOptions() {
+    const { data: wagonsData } = await supabase
+      .from('Arendatori')
+      .select('wagon_number')
+      .eq('is_active', true)
+      .eq('is_deleted', false)
+
+    const { data: arendatorData } = await supabase
+      .from('Arendatori')
+      .select('name_arendator')
+      .eq('is_active', true)
+      .eq('is_deleted', false)
+
+    const uniqueWagons = [...new Set(wagonsData.map(w => w.wagon_number))]
+    const uniqueArendators = [...new Set(arendatorData.map(a => a.name_arendator))]
+
+    setWagonOptions(uniqueWagons)
+    setArendatorOptions(uniqueArendators)
   }
 
   const handleHistory = (wagon) => {
@@ -45,58 +67,70 @@ export default function ParkTable() {
     setShowEdit(true)
   }
 
-  const [showAddDialog, setShowAddDialog] = useState(false)
-
-  
-function formatDate(dateString) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  const day = String(date.getDate()).padStart(2, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const year = date.getFullYear()
-  return `${day}.${month}.${year}`
-}
-
   const handleDelete = async (row) => {
-  const confirm = window.confirm(`Удалить вагон ${row.wagon_number} из активного парка?`)
-  if (!confirm) return
+    const confirm = window.confirm(`Удалить вагон ${row.wagon_number} из активного парка?`)
+    if (!confirm) return
 
-  const { error } = await supabase
-    .from('Arendatori')
-    .update({ is_active: false, is_deleted: true })
-    .eq('id', row.id)
+    const { error } = await supabase
+      .from('Arendatori')
+      .update({ is_active: false, is_deleted: true })
+      .eq('id', row.id)
 
-  if (error) {
-    alert('Ошибка при удалении: ' + error.message)
-  } else {
-    loadData()
+    if (error) {
+      alert('Ошибка при удалении: ' + error.message)
+    } else {
+      loadData()
+    }
   }
-}
 
-  
+  function formatDate(dateString) {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const year = date.getFullYear()
+    return `${day}.${month}.${year}`
+  }
+
   return (
     <>
-      <TextField
-        label="Номер вагона"
-        value={filters.wagon}
-        onChange={e => setFilters({ ...filters, wagon: e.target.value })}
-        sx={{ mr: 2 }}
-      />
-      <TextField
-        label="Арендатор"
-        value={filters.arendator}
-        onChange={e => setFilters({ ...filters, arendator: e.target.value })}
-        sx={{ mr: 2 }}
-      />
-      <Button variant="outlined" onClick={loadData}>Обновить</Button>
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+        <Autocomplete
+          options={wagonOptions}
+          value={filters.wagon}
+          onChange={(e, newValue) =>
+            setFilters({ ...filters, wagon: newValue || '' })
+          }
+          renderInput={(params) => (
+            <TextField {...params} label="Номер вагона" size="small" />
+          )}
+          sx={{ width: 200 }}
+        />
 
-      
-      <Button variant="contained" sx={{ mt: 2 }} onClick={() => setShowAddDialog(true)}>
+        <Autocomplete
+          options={arendatorOptions}
+          value={filters.arendator}
+          onChange={(e, newValue) =>
+            setFilters({ ...filters, arendator: newValue || '' })
+          }
+          renderInput={(params) => (
+            <TextField {...params} label="Арендатор" size="small" />
+          )}
+          sx={{ width: 250 }}
+        />
+
+        <Button variant="outlined" onClick={loadData}>Обновить</Button>
+      </div>
+
+      <Button variant="contained" sx={{ mt: 1 }} onClick={() => setShowAddDialog(true)}>
         Добавить передачу
       </Button>
-      
+
       <Typography sx={{ mt: 2 }}>
-      Показано: {wagons.length} вагонов
+        Показано: {wagons.filter(w =>
+          (!filters.wagon || w.wagon_number === filters.wagon) &&
+          (!filters.arendator || w.name_arendator === filters.arendator)
+        ).length} вагонов
       </Typography>
 
       <Table sx={{ mt: 2 }}>
@@ -111,9 +145,9 @@ function formatDate(dateString) {
         </TableHead>
         <TableBody>
           {wagons
-            .filter(w => 
-              (!filters.wagon || w.wagon_number.includes(filters.wagon)) &&
-              (!filters.arendator || w.arendator.toLowerCase().includes(filters.arendator.toLowerCase()))
+            .filter(w =>
+              (!filters.wagon || w.wagon_number === filters.wagon) &&
+              (!filters.arendator || w.name_arendator === filters.arendator)
             )
             .map(w => (
               <TableRow key={w.id}>
@@ -149,7 +183,6 @@ function formatDate(dateString) {
         onClose={() => setShowAddDialog(false)}
         onSaved={loadData}
       />
-
     </>
   )
 }

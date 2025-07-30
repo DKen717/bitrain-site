@@ -43,6 +43,15 @@ export default function CounterpartiesPage() {
     }
   }
 
+  const { data, error } = await supabase
+    .from('users_custom')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+  
+  console.log(data, error)
+
+  
   const loadCounterparties = async () => {
     const { data, error } = await supabase
       .from('counterparties')
@@ -83,8 +92,8 @@ export default function CounterpartiesPage() {
     } else {
       alert('Ошибка: ' + error.message)
     }
-    console.log('payload:', payload)
   }
+console.log('payload:', payload)
 
   const handleClose = () => {
     setOpen(false)

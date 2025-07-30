@@ -29,20 +29,32 @@ export default function CounterpartiesPage() {
     loadUser()
   }, [])
 
-  const loadUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      setUser(user)
-      const { data: profile } = await supabase
-        .from('users_custom')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      console.log(data, error)
-      setUserProfile(profile)
-      loadCounterparties()
+const loadUser = async () => {
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+
+  if (user) {
+    setUser(user)
+
+    const { data: profile, error } = await supabase
+      .from('users_custom')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+
+    if (error) {
+      console.error('Ошибка при загрузке профиля:', error)
+      return
     }
+
+    console.log('Загружен профиль:', profile)
+
+    setUserProfile(profile)
+    loadCounterparties()
   }
+}
+
 
   
   const loadCounterparties = async () => {

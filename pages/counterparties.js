@@ -55,6 +55,8 @@ export default function CounterpartiesPage() {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
+  console.log('payload:', payload)
+
   const handleSubmit = async () => {
     if (!userProfile) return
 

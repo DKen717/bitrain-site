@@ -5,7 +5,7 @@ import {
 } from '@mui/material'
 import { supabase } from '../src/supabaseClient'
 
-export default function AddTransferDialog({ open, onClose, onSaved }) {
+export default function RentedParkAdd({ open, onClose, onSaved }) {
   const [wagonList, setWagonList] = useState('')
   const [arendatorName, setArendatorName] = useState('')
   const [transferDate, setTransferDate] = useState('')

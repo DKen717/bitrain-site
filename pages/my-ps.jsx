@@ -9,7 +9,7 @@ export default function MyPSPage() {
       <Typography variant="h4" gutterBottom>
         Мой ПС
       </Typography>
-      <ParkTable />
+      <RentedParkTable />
     </Container>
   )
 }

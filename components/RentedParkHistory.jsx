@@ -13,7 +13,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import { useEffect, useState } from 'react'
 import { supabase } from '../src/supabaseClient'
 
-export default function ParkHistoryDialog({ open, onClose, wagon }) {
+export default function RentedParkHistory({ open, onClose, wagon }) {
   const [history, setHistory] = useState([])
 
   useEffect(() => {

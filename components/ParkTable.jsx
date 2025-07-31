@@ -5,8 +5,8 @@ import {
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 import { supabase } from '../src/supabaseClient'
-import ParkHistoryDialog from './ParkHistoryDialog'
-import AddTransferDialog from './AddTransferDialog'
+import ParkHistoryDialog from './RentedParkHistory'
+import AddTransferDialog from './RentedParkAdd'
 
 export default function ParkTable() {
   const [wagons, setWagons] = useState([])

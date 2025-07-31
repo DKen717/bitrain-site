@@ -43,13 +43,6 @@ const loadUser = async () => {
       .eq('user_id', user.id)
       .single()
 
-    if (error) {
-      console.error('Ошибка при загрузке профиля:', error)
-      return
-    }
-
-    console.log('Загружен профиль:', profile)
-
     setUserProfile(profile)
     loadCounterparties()
   }
@@ -205,7 +198,7 @@ const loadUser = async () => {
           <TextField fullWidth name="name_short" label="Краткое название" margin="dense" value={formData.name_short} onChange={handleChange} />
           <TextField fullWidth name="name_full" label="Полное название" margin="dense" value={formData.name_full} onChange={handleChange} />
           <TextField select fullWidth name="type" label="Тип" margin="dense" value={formData.type} onChange={handleChange}>
-            {['клиент', 'партнер', 'поставщик', 'перевозчик'].map(option => (
+            {['Арендатор', 'Собственник'].map(option => (
               <MenuItem key={option} value={option}>{option}</MenuItem>
             ))}
           </TextField>

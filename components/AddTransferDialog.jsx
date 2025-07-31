@@ -9,6 +9,7 @@ export default function AddTransferDialog({ open, onClose, onSaved }) {
   const [wagonList, setWagonList] = useState('')
   const [arendatorName, setArendatorName] = useState('')
   const [transferDate, setTransferDate] = useState('')
+  const [arendatorOptions, setArendatorOptions] = useState([])
 
   // Разбиваем ввод и валидируем
   const validWagons = useMemo(() => {
@@ -37,7 +38,7 @@ export default function AddTransferDialog({ open, onClose, onSaved }) {
 
     const records = validWagons.map(wagon => ({
       wagon_number: wagon,
-      name_arendator: arendatorName,
+      name_arendator: name_arendator,
       data_peredachi: transferDate,
       company_id: companyId,
       created_by: user.data.user.id
@@ -52,6 +53,24 @@ export default function AddTransferDialog({ open, onClose, onSaved }) {
       if (onSaved) onSaved()
     }
   }
+
+    const [arendatorOptions, setArendatorOptions] = useState([])
+  
+    useEffect(() => {
+      const fetchArendators = async () => {
+        const { data, error } = await supabase
+          .from('counterparties')
+          .select('name_short')
+          .eq('type', 'Арендатор')
+          .eq('is_active', true)  // если используешь
+          .order('name_short', { ascending: true })
+    
+        if (data) setArendatorOptions(data.map(a => a.name_short))
+      }
+    
+      fetchArendators()
+    }, [])
+
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -78,12 +97,18 @@ export default function AddTransferDialog({ open, onClose, onSaved }) {
         </Typography>
 
         <TextField
-          label="Арендатор"
+          select
           fullWidth
-          sx={{ mt: 2 }}
-          value={arendatorName}
-          onChange={e => setArendatorName(e.target.value)}
-        />
+          name="name_arendator"
+          label="Арендатор"
+          margin="dense"
+          value={formData.name_arendator}
+          onChange={handleChange}
+        >
+          {arendatorOptions.map(option => (
+            <MenuItem key={option} value={option}>{option}</MenuItem>
+          ))}
+        </TextField>        
         <TextField
           label="Дата передачи"
           type="date"

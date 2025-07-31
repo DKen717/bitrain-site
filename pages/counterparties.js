@@ -40,7 +40,7 @@ const loadUser = async () => {
     const { data: profile, error } = await supabase
       .from('users_custom')
       .select('*')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (error) {

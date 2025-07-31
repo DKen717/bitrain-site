@@ -8,7 +8,7 @@ import { supabase } from '../src/supabaseClient'
 import ParkHistoryDialog from './RentedParkHistory'
 import AddTransferDialog from './RentedParkAdd'
 
-export default function ParkTable() {
+export default function RentedParkTable() {
   const [wagons, setWagons] = useState([])
   const [filters, setFilters] = useState({ wagons: [], arendators: [] })
   const [wagonOptions, setWagonOptions] = useState([])

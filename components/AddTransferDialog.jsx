@@ -9,7 +9,6 @@ export default function AddTransferDialog({ open, onClose, onSaved }) {
   const [wagonList, setWagonList] = useState('')
   const [arendatorName, setArendatorName] = useState('')
   const [transferDate, setTransferDate] = useState('')
-  const [arendatorOptions, setArendatorOptions] = useState([])
 
   // Разбиваем ввод и валидируем
   const validWagons = useMemo(() => {
@@ -38,7 +37,7 @@ export default function AddTransferDialog({ open, onClose, onSaved }) {
 
     const records = validWagons.map(wagon => ({
       wagon_number: wagon,
-      name_arendator: name_arendator,
+      name_arendator: arendatorName,
       data_peredachi: transferDate,
       company_id: companyId,
       created_by: user.data.user.id
@@ -99,11 +98,11 @@ export default function AddTransferDialog({ open, onClose, onSaved }) {
         <TextField
           select
           fullWidth
-          name="name_arendator"
+          name="arendatorName"
           label="Арендатор"
           margin="dense"
-          value={formData.name_arendator}
-          onChange={handleChange}
+          value={arendatorName}
+          onChange={e => setArendatorName(e.target.value)}
         >
           {arendatorOptions.map(option => (
             <MenuItem key={option} value={option}>{option}</MenuItem>

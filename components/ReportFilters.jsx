@@ -111,6 +111,7 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         "Порожний/груженный",
         "Рабочий/нерабочий",
         "Дней без операции",
+        "Простой на станции",
         "Арендатор"
       `)
   

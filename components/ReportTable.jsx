@@ -19,6 +19,7 @@ export default function ReportTable({ data, loading, page, pageSize }) {
     'Порожний/груженный',
     'Рабочий/нерабочий',
     'Дней без операции',
+    'Простой на станции',
     'Арендатор'
   ]
 

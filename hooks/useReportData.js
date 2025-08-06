@@ -53,6 +53,7 @@ export function useReportData(filters, page, pageSize) {
       if (filters.minIdleDays) query = query.gte('Дней без операции', Number(filters.minIdleDays))
       if (filters.maxIdleDays) query = query.lte('Дней без операции', Number(filters.maxIdleDays))
 
+
       if (filters.selectedTenants?.length > 0) {
         query = query.in('Арендатор', filters.selectedTenants)
       }
@@ -73,7 +74,6 @@ export function useReportData(filters, page, pageSize) {
         query = query.eq('Порожний/груженный', filters.loadStatus)
       }
 
-      // (необязательно) фильтр по простою на станции
       if (filters.minDwellDays !== '' && filters.minDwellDays != null) {
         query = query.gte('Простой на станции', Number(filters.minDwellDays))
       }

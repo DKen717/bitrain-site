@@ -250,6 +250,15 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
         onChange={(e) => setFilters(prev => ({ ...prev, maxIdleDays: e.target.value }))}
         size="small" sx={{fontSize: '0.55rem', minWidth: 160 }} />
 
+      <TextField type="number" label="Простой на станции: от" value={filters.minDwellDays}
+        onChange={(e) => setFilters(prev => ({ ...prev, minDwellDays: e.target.value }))} 
+        size="small" sx={{ minWidth: 160 }} />
+      
+      <TextField type="number" label="Простой на станции: до" value={filters.maxDwellDays}
+        onChange={(e) => setFilters(prev => ({ ...prev, maxDwellDays: e.target.value }))}
+        size="small" sx={{ minWidth: 160 }} />
+
+
       <Button onClick={onSearch} variant="contained" color="primary" disabled={loading}>
         {loading ? 'Загрузка...' : '🔍 Поиск'}
       </Button>

@@ -74,12 +74,9 @@ export function useReportData(filters, page, pageSize) {
         query = query.eq('Порожний/груженный', filters.loadStatus)
       }
 
-      if (filters.minDwellDays !== '' && filters.minDwellDays != null) {
-        query = query.gte('Простой на станции', Number(filters.minDwellDays))
-      }
-      if (filters.maxDwellDays !== '' && filters.maxDwellDays != null) {
-        query = query.lte('Простой на станции', Number(filters.maxDwellDays))
-      }
+      if (filters.minDwellDays) query = query.gte('Простой на станции', Number(filters.minDwellDays))
+      if (filters.maxDwellDays) query = query.lte('Простой на станции', Number(filters.maxDwellDays))
+
 
       const from = (page - 1) * pageSize
       const to = from + pageSize - 1

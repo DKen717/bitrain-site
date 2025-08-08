@@ -11,7 +11,7 @@ import dayjs from 'dayjs'
 import { supabase } from '../src/supabaseClient'
 import dynamic from 'next/dynamic'
 
-// recharts только на клиенте (чтобы не падать на SSR)
+// recharts
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false })
 const BarChart            = dynamic(() => import('recharts').then(m => m.BarChart),            { ssr: false })
 const Bar                 = dynamic(() => import('recharts').then(m => m.Bar),                 { ssr: false })
@@ -26,51 +26,17 @@ const BAR_SELECTED = '#ff9800'
 
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(dayjs())
-  const [availableTimes, setAvailableTimes] = useState([]) // [{value:'HH:mm:ss', label:'HH:mm'}]
-  const [selectedTime, setSelectedTime] = useState('')      // хранит 'HH:mm:ss'
+  const [allRowsForDate, setAllRowsForDate] = useState([]) // все строки за дату
+  const [availableTimes, setAvailableTimes] = useState([]) // ['HH:mm:ss']
+  const [selectedTime, setSelectedTime] = useState('')      // 'HH:mm:ss'
   const [loading, setLoading] = useState(false)
   const [errorText, setErrorText] = useState('')
-  const [rows, setRows] = useState([])
 
   // выбранный арендатор для кросс-фильтра
-  const [selectedTenant, setSelectedTenant] = useState('ALL') // 'ALL' | <name>
+  const [selectedTenant, setSelectedTenant] = useState('ALL')
 
-  // --- 1) Времена отчета для даты ---
-  useEffect(() => {
-    let ignore = false
-    ;(async () => {
-      setErrorText('')
-      const d = selectedDate.format('YYYY-MM-DD')
-
-      const { data, error } = await supabase
-        .from('Dislocation_daily')
-        .select('vremya_otcheta')
-        .eq('data_otcheta', d)
-        .order('vremya_otcheta', { ascending: true })
-
-      if (error) { if (!ignore) setErrorText(error.message); return }
-
-      // уникальные, в виде { value: 'HH:mm:ss', label: 'HH:mm' }
-      const uniq = [...new Set((data || []).map(r => r?.vremya_otcheta).filter(Boolean))]
-      const times = uniq.map(t => {
-        const s = String(t) // 'HH:mm:ss' или 'HH:mm'
-        const label = s.length >= 5 ? s.slice(0, 5) : s
-        // нормализуем value в 'HH:mm:ss'
-        const value = s.length === 5 ? `${s}:00` : s
-        return { value, label }
-      })
-
-      if (!ignore) {
-        setAvailableTimes(times)
-        setSelectedTime(times.at(-1)?.value || '')
-      }
-    })()
-    return () => { ignore = true }
-  }, [selectedDate])
-
-  // --- 2) Строки для выбранных даты/времени ---
-  const loadRows = useCallback(async () => {
-    if (!selectedTime) { setRows([]); return }
+  // --- 1) Грузим все строки по выбранной дате (без фильтра по времени) ---
+  const loadRowsForDate = useCallback(async () => {
     setLoading(true); setErrorText('')
     try {
       const d = selectedDate.format('YYYY-MM-DD')
@@ -82,26 +48,55 @@ export default function Dashboard() {
           arendator,
           naimenovanie_operacii,
           stanciya_operacii,
-          dney_bez_operacii
+          dney_bez_operacii,
+          vremya_otcheta
         `)
         .eq('data_otcheta', d)
-        .eq('vremya_otcheta', selectedTime) // уже 'HH:mm:ss'
+        .not('vremya_otcheta', 'is', null)
 
       if (error) throw error
-      setRows(data || [])
+
+      const rows = data || []
+      // найдём доступные времена (уникальные) и максимальное время
+      const timesSet = new Set(
+        rows
+          .map(r => String(r.vremya_otcheta))
+          .filter(Boolean)
+          .map(s => (s.length === 5 ? `${s}:00` : s)) // нормализуем к HH:mm:ss
+      )
+      const times = Array.from(timesSet).sort((a, b) => a.localeCompare(b))
+      const latest = times.at(-1) || ''
+
+      setAllRowsForDate(rows)
+      setAvailableTimes(times)
+      setSelectedTime(latest)
+
+      console.log('[DASH] date=', d, 'rows=', rows.length, 'times=', times, 'latest=', latest)
     } catch (e) {
       setErrorText(e.message || 'Ошибка загрузки')
-      setRows([])
+      setAllRowsForDate([])
+      setAvailableTimes([])
+      setSelectedTime('')
     } finally {
       setLoading(false)
     }
-  }, [selectedDate, selectedTime])
+  }, [selectedDate])
 
-  useEffect(() => { loadRows() }, [loadRows])
+  useEffect(() => { loadRowsForDate() }, [loadRowsForDate])
+
+  // --- 2) Локальная фильтрация по выбранному времени ---
+  const rows = useMemo(() => {
+    if (!selectedTime) return []
+    // фильтруем локально
+    const norm = (s) => (String(s).length === 5 ? `${s}:00` : String(s))
+    const filtered = allRowsForDate.filter(r => norm(r.vremya_otcheta) === selectedTime)
+    console.log('[DASH] selectedTime=', selectedTime, 'filtered rows=', filtered.length)
+    return filtered
+  }, [allRowsForDate, selectedTime])
 
   // --- Агрегации ---
 
-  // Все арендаторы (для чарта — НЕ фильтруем, чтобы был полный список)
+  // Все арендаторы
   const byTenant = useMemo(() => {
     const map = new Map()
     rows.forEach(r => {
@@ -119,14 +114,14 @@ export default function Dashboard() {
     return rows.filter(r => (r.arendator || 'Без арендатора') === selectedTenant)
   }, [rows, selectedTenant])
 
-  // KPI (подчиняются фильтру)
+  // KPI
   const statusSummary = useMemo(() => {
     const working = rowsFiltered.filter(r => r.rabochij_nerabochij === 'Рабочий').length
     const notWorking = rowsFiltered.filter(r => r.rabochij_nerabochij === 'Нерабочий').length
     return { working, notWorking, total: rowsFiltered.length }
   }, [rowsFiltered])
 
-  // ТОП-10 по операциям (после фильтра)
+  // ТОП-10 по операциям
   const top10ByOperation = useMemo(() => {
     const map = new Map()
     rowsFiltered.forEach(r => {
@@ -139,7 +134,7 @@ export default function Dashboard() {
       .slice(0, 10)
   }, [rowsFiltered])
 
-  // ТОП-10 по станциям (после фильтра)
+  // ТОП-10 по станциям
   const top10ByStation = useMemo(() => {
     const map = new Map()
     rowsFiltered.forEach(r => {
@@ -177,7 +172,7 @@ export default function Dashboard() {
               onChange={(e) => setSelectedTime(e.target.value)}
             >
               {availableTimes.map((t, i) => (
-                <MenuItem key={i} value={t.value}>{t.label}</MenuItem>
+                <MenuItem key={i} value={t}>{t.slice(0,5)}</MenuItem>
               ))}
             </Select>
           </FormControl>

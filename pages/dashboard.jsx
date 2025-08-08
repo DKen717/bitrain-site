@@ -26,8 +26,8 @@ const BAR_SELECTED = '#ff9800'
 
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(dayjs())
-  const [availableTimes, setAvailableTimes] = useState([])
-  const [selectedTime, setSelectedTime] = useState('')
+  const [availableTimes, setAvailableTimes] = useState([]) // [{value:'HH:mm:ss', label:'HH:mm'}]
+  const [selectedTime, setSelectedTime] = useState('')      // хранит 'HH:mm:ss'
   const [loading, setLoading] = useState(false)
   const [errorText, setErrorText] = useState('')
   const [rows, setRows] = useState([])
@@ -41,6 +41,7 @@ export default function Dashboard() {
     ;(async () => {
       setErrorText('')
       const d = selectedDate.format('YYYY-MM-DD')
+
       const { data, error } = await supabase
         .from('Dislocation_daily')
         .select('vremya_otcheta')
@@ -49,10 +50,19 @@ export default function Dashboard() {
 
       if (error) { if (!ignore) setErrorText(error.message); return }
 
-      const uniq = [...new Set((data || []).map(r => r.vremya_otcheta).filter(Boolean))]
+      // уникальные, в виде { value: 'HH:mm:ss', label: 'HH:mm' }
+      const uniq = [...new Set((data || []).map(r => r?.vremya_otcheta).filter(Boolean))]
+      const times = uniq.map(t => {
+        const s = String(t) // 'HH:mm:ss' или 'HH:mm'
+        const label = s.length >= 5 ? s.slice(0, 5) : s
+        // нормализуем value в 'HH:mm:ss'
+        const value = s.length === 5 ? `${s}:00` : s
+        return { value, label }
+      })
+
       if (!ignore) {
-        setAvailableTimes(uniq)
-        setSelectedTime(uniq[uniq.length - 1] || '')
+        setAvailableTimes(times)
+        setSelectedTime(times.at(-1)?.value || '')
       }
     })()
     return () => { ignore = true }
@@ -75,7 +85,7 @@ export default function Dashboard() {
           dney_bez_operacii
         `)
         .eq('data_otcheta', d)
-        .eq('vremya_otcheta', selectedTime)
+        .eq('vremya_otcheta', selectedTime) // уже 'HH:mm:ss'
 
       if (error) throw error
       setRows(data || [])
@@ -166,7 +176,9 @@ export default function Dashboard() {
               label="Время отчета"
               onChange={(e) => setSelectedTime(e.target.value)}
             >
-              {availableTimes.map((t, i) => <MenuItem key={i} value={t}>{t}</MenuItem>)}
+              {availableTimes.map((t, i) => (
+                <MenuItem key={i} value={t.value}>{t.label}</MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Grid>

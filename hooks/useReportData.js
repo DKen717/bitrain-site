@@ -47,7 +47,7 @@ export function useReportData(filters, page, pageSize) {
       }
 
       if (filters.workingStatus) {
-        query = query.eq('Рабочий/нерабочий', filters.workingStatus)
+        query = query.eq('"Рабочий/нерабочий"', filters.workingStatus)
       }
 
       if (filters.minIdleDays) query = query.gte('Дней без операции', Number(filters.minIdleDays))
@@ -71,7 +71,7 @@ export function useReportData(filters, page, pageSize) {
       }
 
       if (filters.loadStatus) {
-        query = query.eq('Порожний/груженный', filters.loadStatus)
+        query = query.eq('"Порожний/груженный"', filters.loadStatus)
       }
 
       if (filters.minDwellDays) query = query.gte('Простой на станции', Number(filters.minDwellDays))

@@ -11,20 +11,13 @@ import dayjs from 'dayjs'
 import { supabase } from '../src/supabaseClient'
 import dynamic from 'next/dynamic'
 
-// recharts — только на клиенте
-const BarChart      = dynamic(() => import('recharts').then(m => m.BarChart),      { ssr: false })
-const Bar           = dynamic(() => import('recharts').then(m => m.Bar),           { ssr: false })
-const XAxis         = dynamic(() => import('recharts').then(m => m.XAxis),         { ssr: false })
-const YAxis         = dynamic(() => import('recharts').then(m => m.YAxis),         { ssr: false })
-const Tooltip       = dynamic(() => import('recharts').then(m => m.Tooltip),       { ssr: false })
-const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid), { ssr: false })
-const Cell          = dynamic(() => import('recharts').then(m => m.Cell),          { ssr: false })
+// ⚠️ Один-единственный динамический импорт всего recharts
+const Recharts = dynamic(() => import('recharts'), { ssr: false })
 
 const BAR_DEFAULT = '#2196f3'
 const BAR_SELECTED = '#ff9800'
 const CHART_HEIGHT = 320
 
-// хук: ширина контейнера через ResizeObserver
 function useContainerWidth() {
   const ref = useRef(null)
   const [width, setWidth] = useState(0)
@@ -40,7 +33,6 @@ function useContainerWidth() {
         })
       : null
     if (ro) ro.observe(el)
-    // fallback на ресайз окна
     const onResize = () => {
       const w = el.getBoundingClientRect().width
       if (w) setWidth(w)
@@ -65,7 +57,6 @@ export default function Dashboard() {
 
   const [selectedTenant, setSelectedTenant] = useState('ALL')
 
-  // грузим все строки за дату (без фильтра времени)
   const loadRowsForDate = useCallback(async () => {
     setLoading(true); setErrorText('')
     try {
@@ -88,10 +79,9 @@ export default function Dashboard() {
 
       const rows = data || []
       const timesSet = new Set(
-        rows
-          .map(r => String(r.vremya_otcheta))
-          .filter(Boolean)
-          .map(s => (s.length === 5 ? `${s}:00` : s))
+        rows.map(r => String(r.vremya_otcheta))
+            .filter(Boolean)
+            .map(s => (s.length === 5 ? `${s}:00` : s))
       )
       const times = Array.from(timesSet).sort((a, b) => a.localeCompare(b))
       const latest = times.at(-1) || ''
@@ -113,7 +103,6 @@ export default function Dashboard() {
 
   useEffect(() => { loadRowsForDate() }, [loadRowsForDate])
 
-  // локальная фильтрация по времени
   const rows = useMemo(() => {
     if (!selectedTime) return []
     const norm = (s) => (String(s).length === 5 ? `${s}:00` : String(s))
@@ -122,7 +111,6 @@ export default function Dashboard() {
     return filtered
   }, [allRowsForDate, selectedTime])
 
-  // агрегаты
   const byTenant = useMemo(() => {
     const map = new Map()
     rows.forEach(r => {
@@ -166,7 +154,8 @@ export default function Dashboard() {
       .slice(0, 10)
   }, [rowsFiltered])
 
-  // ширины контейнеров графиков
+  console.log('[DASH] byTenant=', byTenant.length, 'topOps=', top10ByOperation.length, 'topStations=', top10ByStation.length)
+
   const [tenantRef, tenantWidth]     = useContainerWidth()
   const [opsRef, opsWidth]           = useContainerWidth()
   const [stationsRef, stationsWidth] = useContainerWidth()
@@ -175,7 +164,6 @@ export default function Dashboard() {
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>Дэшборд</Typography>
 
-      {/* Дата и время */}
       <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
         <Grid item xs={12} md={6}>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -212,7 +200,6 @@ export default function Dashboard() {
         </Box>
       )}
 
-      {/* KPI */}
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 2 }}>
         <Card sx={{ flex: 1 }}>
           <CardContent>
@@ -237,54 +224,70 @@ export default function Dashboard() {
         </Card>
       </Stack>
 
-      {/* Арендаторы */}
+      {/* Диагностический статический график — должен отрисоваться всегда */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>Test chart (static)</Typography>
+          <Box sx={{ width: '100%', overflow: 'auto' }}>
+            <div style={{ width: 900 }}>
+              <Recharts.BarChart width={900} height={220} data={[
+                { name: 'A', count: 12 }, { name: 'B', count: 7 }, { name: 'C', count: 19 }
+              ]} margin={{ top: 10, right: 20, left: 0, bottom: 30 }}>
+                <Recharts.CartesianGrid strokeDasharray="3 3" />
+                <Recharts.XAxis dataKey="name" />
+                <Recharts.YAxis allowDecimals={false} />
+                <Recharts.Tooltip />
+                <Recharts.Bar dataKey="count" />
+              </Recharts.BarChart>
+            </div>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Вагоны по арендаторам */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
             <Typography variant="h6">Вагоны по арендаторам</Typography>
-            <Button
-              size="small"
-              onClick={() => setSelectedTenant('ALL')}
-              disabled={selectedTenant === 'ALL'}
-            >
+            <Button size="small" onClick={() => setSelectedTenant('ALL')} disabled={selectedTenant === 'ALL'}>
               Сбросить фильтр
             </Button>
           </Stack>
 
           <Box ref={tenantRef} sx={{ width: '100%', minWidth: 320 }}>
             {tenantWidth > 0 && (
-              <BarChart
+              <Recharts.BarChart
                 width={tenantWidth}
                 height={CHART_HEIGHT}
                 data={byTenant}
                 margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
                 key={`tenants-${selectedTime}-${byTenant.length}-${tenantWidth}`}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="count" isAnimationActive={false}>
+                <Recharts.CartesianGrid strokeDasharray="3 3" />
+                <Recharts.XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
+                <Recharts.YAxis allowDecimals={false} />
+                <Recharts.Tooltip />
+                <Recharts.Bar dataKey="count" isAnimationActive={false}>
                   {byTenant.map((t, i) => (
-                    <Cell
+                    <Recharts.Cell
                       key={i}
                       cursor="pointer"
                       onClick={() => setSelectedTenant(t.name)}
                       fill={selectedTenant !== 'ALL' && t.name === selectedTenant ? BAR_SELECTED : BAR_DEFAULT}
                     />
                   ))}
-                </Bar>
-              </BarChart>
+                </Recharts.Bar>
+              </Recharts.BarChart>
             )}
           </Box>
 
           <Typography variant="caption" sx={{ opacity: 0.7 }}>
-            {`Позиции: ${byTenant.length}`}
+            {`Позиции: ${byTenant.length} | container: ${tenantWidth}px`}
           </Typography>
         </CardContent>
       </Card>
 
-      {/* ТОП-10 по операциям и по станциям */}
+      {/* ТОП-10 по операциям и станциям */}
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
           <Card>
@@ -292,23 +295,23 @@ export default function Dashboard() {
               <Typography variant="h6" gutterBottom>ТОП-10 по операциям</Typography>
               <Box ref={opsRef} sx={{ width: '100%', minWidth: 320 }}>
                 {opsWidth > 0 && (
-                  <BarChart
+                  <Recharts.BarChart
                     width={opsWidth}
                     height={CHART_HEIGHT}
                     data={top10ByOperation}
                     margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
                     key={`ops-${selectedTime}-${top10ByOperation.length}-${opsWidth}`}
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="count" isAnimationActive={false} />
-                  </BarChart>
+                    <Recharts.CartesianGrid strokeDasharray="3 3" />
+                    <Recharts.XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
+                    <Recharts.YAxis allowDecimals={false} />
+                    <Recharts.Tooltip />
+                    <Recharts.Bar dataKey="count" isAnimationActive={false} />
+                  </Recharts.BarChart>
                 )}
               </Box>
               <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                {`Позиции: ${top10ByOperation.length}`}
+                {`Позиции: ${top10ByOperation.length} | container: ${opsWidth}px`}
               </Typography>
             </CardContent>
           </Card>
@@ -320,23 +323,23 @@ export default function Dashboard() {
               <Typography variant="h6" gutterBottom>ТОП-10 по станциям операций</Typography>
               <Box ref={stationsRef} sx={{ width: '100%', minWidth: 320 }}>
                 {stationsWidth > 0 && (
-                  <BarChart
+                  <Recharts.BarChart
                     width={stationsWidth}
                     height={CHART_HEIGHT}
                     data={top10ByStation}
                     margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
                     key={`stations-${selectedTime}-${top10ByStation.length}-${stationsWidth}`}
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="count" isAnimationActive={false} />
-                  </BarChart>
+                    <Recharts.CartesianGrid strokeDasharray="3 3" />
+                    <Recharts.XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
+                    <Recharts.YAxis allowDecimals={false} />
+                    <Recharts.Tooltip />
+                    <Recharts.Bar dataKey="count" isAnimationActive={false} />
+                  </Recharts.BarChart>
                 )}
               </Box>
               <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                {`Позиции: ${top10ByStation.length}`}
+                {`Позиции: ${top10ByStation.length} | container: ${stationsWidth}px`}
               </Typography>
             </CardContent>
           </Card>

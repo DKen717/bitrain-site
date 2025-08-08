@@ -22,8 +22,8 @@ export default function ReportFilters({ filters, setFilters, onSearch, onClear, 
 
   const loadFilterOptions = async () => {
     const params = {
-      from_date: filters.fromDate || null,
-      to_date: filters.toDate || null
+      from_date: filters.fromDate,
+      to_date: filters.toDate
     }
 
     try {

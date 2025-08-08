@@ -31,9 +31,16 @@ export default function Dashboard() {
   const [selectedTime, setSelectedTime] = useState('')       // выбранное 'HH:mm:ss'
   const [loading, setLoading] = useState(false)
   const [errorText, setErrorText] = useState('')
+  const [chartsReady, setChartsReady] = useState(false)      // чтобы графики монтировались после layout
 
   // выбранный арендатор для кросс-фильтра
   const [selectedTenant, setSelectedTenant] = useState('ALL') // 'ALL' | <name>
+
+  useEffect(() => {
+    // Дадим лейауту стабилизироваться (фиксы для ResponsiveContainer)
+    const t = setTimeout(() => setChartsReady(true), 0)
+    return () => clearTimeout(t)
+  }, [])
 
   // --- 1) Грузим все строки по выбранной дате (без фильтра по времени) ---
   const loadRowsForDate = useCallback(async () => {
@@ -162,8 +169,10 @@ export default function Dashboard() {
         </Grid>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth>
-            <InputLabel>Время отчета</InputLabel>
+            <InputLabel id="report-time-label">Время отчета</InputLabel>
             <Select
+              labelId="report-time-label"
+              id="report-time"
               value={selectedTime}
               label="Время отчета"
               onChange={(e) => setSelectedTime(e.target.value)}
@@ -222,26 +231,31 @@ export default function Dashboard() {
             </Button>
           </Stack>
 
-          <Box sx={{ width: '100%', height: 320, minWidth: 300 }}>
-            <ResponsiveContainer key={`tenants-${selectedTime}-${byTenant.length}`} width="100%" height="100%">
-              <BarChart data={byTenant} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="count" isAnimationActive={false}>
-                  {byTenant.map((t, i) => (
-                    <Cell
-                      key={i}
-                      cursor="pointer"
-                      onClick={() => setSelectedTenant(t.name)}
-                      fill={selectedTenant !== 'ALL' && t.name === selectedTenant ? BAR_SELECTED : BAR_DEFAULT}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </Box>
+          {chartsReady && (
+            <Box sx={{ width: '100%', minWidth: 320, height: 340 }}>
+              <ResponsiveContainer
+                key={`tenants-${selectedTime}-${byTenant.length}`}
+                width="99%" height="100%"
+              >
+                <BarChart data={byTenant} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" isAnimationActive={false}>
+                    {byTenant.map((t, i) => (
+                      <Cell
+                        key={i}
+                        cursor="pointer"
+                        onClick={() => setSelectedTenant(t.name)}
+                        fill={selectedTenant !== 'ALL' && t.name === selectedTenant ? BAR_SELECTED : BAR_DEFAULT}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
+          )}
           <Typography variant="caption" sx={{ opacity: 0.7 }}>
             {`Позиции: ${byTenant.length}`}
           </Typography>
@@ -254,17 +268,22 @@ export default function Dashboard() {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>ТОП-10 по операциям</Typography>
-              <Box sx={{ width: '100%', height: 320, minWidth: 300 }}>
-                <ResponsiveContainer key={`ops-${selectedTime}-${top10ByOperation.length}`} width="100%" height="100%">
-                  <BarChart data={top10ByOperation} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="count" isAnimationActive={false} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
+              {chartsReady && (
+                <Box sx={{ width: '100%', minWidth: 320, height: 340 }}>
+                  <ResponsiveContainer
+                    key={`ops-${selectedTime}-${top10ByOperation.length}`}
+                    width="99%" height="100%"
+                  >
+                    <BarChart data={top10ByOperation} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Bar dataKey="count" isAnimationActive={false} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              )}
               <Typography variant="caption" sx={{ opacity: 0.7 }}>
                 {`Позиции: ${top10ByOperation.length}`}
               </Typography>
@@ -276,17 +295,22 @@ export default function Dashboard() {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>ТОП-10 по станциям операций</Typography>
-              <Box sx={{ width: '100%', height: 320, minWidth: 300 }}>
-                <ResponsiveContainer key={`stations-${selectedTime}-${top10ByStation.length}`} width="100%" height="100%">
-                  <BarChart data={top10ByStation} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="count" isAnimationActive={false} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
+              {chartsReady && (
+                <Box sx={{ width: '100%', minWidth: 320, height: 340 }}>
+                  <ResponsiveContainer
+                    key={`stations-${selectedTime}-${top10ByStation.length}`}
+                    width="99%" height="100%"
+                  >
+                    <BarChart data={top10ByStation} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Bar dataKey="count" isAnimationActive={false} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              )}
               <Typography variant="caption" sx={{ opacity: 0.7 }}>
                 {`Позиции: ${top10ByStation.length}`}
               </Typography>

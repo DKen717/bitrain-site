@@ -21,7 +21,6 @@ const Tooltip             = dynamic(() => import('recharts').then(m => m.Tooltip
 const CartesianGrid       = dynamic(() => import('recharts').then(m => m.CartesianGrid),       { ssr: false })
 const Cell                = dynamic(() => import('recharts').then(m => m.Cell),                { ssr: false })
 
-// Цвета
 const BAR_DEFAULT = '#2196f3'
 const BAR_SELECTED = '#ff9800'
 
@@ -43,12 +42,14 @@ export default function Dashboard() {
       setErrorText('')
       const d = selectedDate.format('YYYY-MM-DD')
       const { data, error } = await supabase
-        .from('Dislocation_daily2')
-        .select('"Время отчета"')
-        .eq('Дата отчета', d)
-        .order('"Время отчета"', { ascending: true })
+        .from('Dislocation_daily')
+        .select('vremya_otcheta')
+        .eq('data_otcheta', d)
+        .order('vremya_otcheta', { ascending: true })
+
       if (error) { if (!ignore) setErrorText(error.message); return }
-      const uniq = [...new Set((data || []).map(r => r['Время отчета']).filter(Boolean))]
+
+      const uniq = [...new Set((data || []).map(r => r.vremya_otcheta).filter(Boolean))]
       if (!ignore) {
         setAvailableTimes(uniq)
         setSelectedTime(uniq[uniq.length - 1] || '')
@@ -64,17 +65,17 @@ export default function Dashboard() {
     try {
       const d = selectedDate.format('YYYY-MM-DD')
       const { data, error } = await supabase
-        .from('Dislocation_daily2')
+        .from('Dislocation_daily')
         .select(`
-          "Номер вагона",
-          "Рабочий/нерабочий",
-          "Арендатор",
-          "Наименование операции",
-          "Станция операции",
-          "Дней без операции"
+          nomer_vagona,
+          rabochij_nerabochij,
+          arendator,
+          naimenovanie_operacii,
+          stanciya_operacii,
+          dney_bez_operacii
         `)
-        .eq('Дата отчета', d)
-        .eq('Время отчета', selectedTime)
+        .eq('data_otcheta', d)
+        .eq('vremya_otcheta', selectedTime)
 
       if (error) throw error
       setRows(data || [])
@@ -94,7 +95,7 @@ export default function Dashboard() {
   const byTenant = useMemo(() => {
     const map = new Map()
     rows.forEach(r => {
-      const key = r['Арендатор'] || 'Без арендатора'
+      const key = r.arendator || 'Без арендатора'
       map.set(key, (map.get(key) || 0) + 1)
     })
     return Array.from(map.entries())
@@ -105,13 +106,13 @@ export default function Dashboard() {
   // Отфильтрованные строки (по выбранному арендатору)
   const rowsFiltered = useMemo(() => {
     if (selectedTenant === 'ALL') return rows
-    return rows.filter(r => (r['Арендатор'] || 'Без арендатора') === selectedTenant)
+    return rows.filter(r => (r.arendator || 'Без арендатора') === selectedTenant)
   }, [rows, selectedTenant])
 
-  // KPI (подчиняются фильтру, как в Power BI)
+  // KPI (подчиняются фильтру)
   const statusSummary = useMemo(() => {
-    const working = rowsFiltered.filter(r => r['Рабочий/нерабочий'] === 'Рабочий').length
-    const notWorking = rowsFiltered.filter(r => r['Рабочий/нерабочий'] === 'Нерабочий').length
+    const working = rowsFiltered.filter(r => r.rabochij_nerabochij === 'Рабочий').length
+    const notWorking = rowsFiltered.filter(r => r.rabochij_nerabochij === 'Нерабочий').length
     return { working, notWorking, total: rowsFiltered.length }
   }, [rowsFiltered])
 
@@ -119,7 +120,7 @@ export default function Dashboard() {
   const top10ByOperation = useMemo(() => {
     const map = new Map()
     rowsFiltered.forEach(r => {
-      const k = r['Наименование операции'] || 'Без операции'
+      const k = r.naimenovanie_operacii || 'Без операции'
       map.set(k, (map.get(k) || 0) + 1)
     })
     return Array.from(map.entries())
@@ -132,7 +133,7 @@ export default function Dashboard() {
   const top10ByStation = useMemo(() => {
     const map = new Map()
     rowsFiltered.forEach(r => {
-      const k = r['Станция операции'] || 'Без станции'
+      const k = r.stanciya_operacii || 'Без станции'
       map.set(k, (map.get(k) || 0) + 1)
     })
     return Array.from(map.entries())
@@ -145,7 +146,7 @@ export default function Dashboard() {
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>Дэшборд</Typography>
 
-      {/* Дата и время — в одну строку */}
+      {/* Дата и время */}
       <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
         <Grid item xs={12} md={6}>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -178,7 +179,7 @@ export default function Dashboard() {
         </Box>
       )}
 
-      {/* KPI (зависят от выбранного арендатора) + индикатор фильтра */}
+      {/* KPI */}
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 2 }}>
         <Card sx={{ flex: 1 }}>
           <CardContent>
@@ -203,7 +204,7 @@ export default function Dashboard() {
         </Card>
       </Stack>
 
-      {/* Арендаторы (кликабельно, кросс-фильтр) */}
+      {/* Арендаторы (кликабельно) */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
@@ -219,10 +220,7 @@ export default function Dashboard() {
 
           <Box sx={{ width: '100%', height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={byTenant}
-                margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
-              >
+              <BarChart data={byTenant} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} />
                 <YAxis allowDecimals={false} />

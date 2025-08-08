@@ -10,73 +10,71 @@ export function useReportData(filters, page, pageSize) {
     setLoading(true)
     try {
       let query = supabase
-        .from('Dislocation_daily2')
+        .from('Dislocation_daily')
         .select(`
-          "Номер вагона",
-          "Дата совершения операции",
-          "Дата отчета",
-          "Время отчета",
-          "Станция операции",
-          "Станция отправления",
-          "Станция назначения",
-          "Наименование операции",
-          "Наименование груза",
-          "Тип вагона",
-          "Порожний/груженный",
-          "Рабочий/нерабочий",
-          "Дней без операции",
-          "Арендатор",
-          "Простой на станции"
+          nomer_vagona,
+          data_operacii,
+          data_otcheta,
+          vremya_otcheta,
+          stanciya_operacii,
+          stanciya_otpravleniya,
+          stanciya_naznacheniya,
+          naimenovanie_operacii,
+          naimenovanie_gruza,
+          tip_vagona,
+          porozhnij_gruzhenyj,
+          rabochij_nerabochij,
+          dney_bez_operacii,
+          arendator,
+          prostoj_na_stancii
         `, { count: 'exact' })
 
       // сортировка
       query = query
-        .order('Дата отчета', { ascending: false })
-        .order('Время отчета', { ascending: false })
+        .order('data_otcheta', { ascending: false })
+        .order('vremya_otcheta', { ascending: false })
 
-      if (filters.fromDate) query = query.gte('Дата отчета', filters.fromDate)
-      if (filters.toDate)   query = query.lte('Дата отчета', filters.toDate)
+      if (filters.fromDate) query = query.gte('data_otcheta', filters.fromDate)
+      if (filters.toDate)   query = query.lte('data_otcheta', filters.toDate)
 
       if (filters.selectedTimes?.length > 0) {
         const formatted = filters.selectedTimes.map(t => `${t}:00`)
-        query = query.in('Время отчета', formatted)
+        query = query.in('vremya_otcheta', formatted)
       }
 
       if (filters.selectedWagons?.length > 0) {
-        query = query.in('Номер вагона', filters.selectedWagons)
+        query = query.in('nomer_vagona', filters.selectedWagons)
       }
 
       if (filters.workingStatus) {
-        query = query.eq('"Рабочий/нерабочий"', filters.workingStatus)
+        query = query.eq('rabochij_nerabochij', filters.workingStatus)
       }
 
-      if (filters.minIdleDays) query = query.gte('Дней без операции', Number(filters.minIdleDays))
-      if (filters.maxIdleDays) query = query.lte('Дней без операции', Number(filters.maxIdleDays))
-
+      if (filters.minIdleDays) query = query.gte('dney_bez_operacii', Number(filters.minIdleDays))
+      if (filters.maxIdleDays) query = query.lte('dney_bez_operacii', Number(filters.maxIdleDays))
 
       if (filters.selectedTenants?.length > 0) {
-        query = query.in('Арендатор', filters.selectedTenants)
+        query = query.in('arendator', filters.selectedTenants)
       }
 
       if (filters.selectedOperationStations?.length > 0) {
-        query = query.in('Станция операции', filters.selectedOperationStations)
+        query = query.in('stanciya_operacii', filters.selectedOperationStations)
       }
 
       if (filters.selectedDepartureStations?.length > 0) {
-        query = query.in('Станция отправления', filters.selectedDepartureStations)
+        query = query.in('stanciya_otpravleniya', filters.selectedDepartureStations)
       }
 
       if (filters.selectedDestinationStations?.length > 0) {
-        query = query.in('Станция назначения', filters.selectedDestinationStations)
+        query = query.in('stanciya_naznacheniya', filters.selectedDestinationStations)
       }
 
       if (filters.loadStatus) {
-        query = query.eq('"Порожний/груженный"', filters.loadStatus)
+        query = query.eq('porozhnij_gruzhenyj', filters.loadStatus)
       }
 
-      if (filters.minDwellDays) query = query.gte('Простой на станции', Number(filters.minDwellDays))
-      if (filters.maxDwellDays) query = query.lte('Простой на станции', Number(filters.maxDwellDays))
-
+      if (filters.minDwellDays) query = query.gte('prostoj_na_stancii', Number(filters.minDwellDays))
+      if (filters.maxDwellDays) query = query.lte('prostoj_na_stancii', Number(filters.maxDwellDays))
 
       const from = (page - 1) * pageSize
       const to = from + pageSize - 1

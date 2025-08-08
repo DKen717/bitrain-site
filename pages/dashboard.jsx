@@ -11,7 +11,7 @@ import dayjs from 'dayjs'
 import { supabase } from '../src/supabaseClient'
 import dynamic from 'next/dynamic'
 
-// recharts
+// recharts (только на клиенте)
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false })
 const BarChart            = dynamic(() => import('recharts').then(m => m.BarChart),            { ssr: false })
 const Bar                 = dynamic(() => import('recharts').then(m => m.Bar),                 { ssr: false })
@@ -26,14 +26,14 @@ const BAR_SELECTED = '#ff9800'
 
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(dayjs())
-  const [allRowsForDate, setAllRowsForDate] = useState([]) // все строки за дату
-  const [availableTimes, setAvailableTimes] = useState([]) // ['HH:mm:ss']
-  const [selectedTime, setSelectedTime] = useState('')      // 'HH:mm:ss'
+  const [allRowsForDate, setAllRowsForDate] = useState([])   // все строки за дату
+  const [availableTimes, setAvailableTimes] = useState([])   // ['HH:mm:ss']
+  const [selectedTime, setSelectedTime] = useState('')       // выбранное 'HH:mm:ss'
   const [loading, setLoading] = useState(false)
   const [errorText, setErrorText] = useState('')
 
   // выбранный арендатор для кросс-фильтра
-  const [selectedTenant, setSelectedTenant] = useState('ALL')
+  const [selectedTenant, setSelectedTenant] = useState('ALL') // 'ALL' | <name>
 
   // --- 1) Грузим все строки по выбранной дате (без фильтра по времени) ---
   const loadRowsForDate = useCallback(async () => {
@@ -57,12 +57,13 @@ export default function Dashboard() {
       if (error) throw error
 
       const rows = data || []
-      // найдём доступные времена (уникальные) и максимальное время
+
+      // уникальные времена, нормализуем к HH:mm:ss
       const timesSet = new Set(
         rows
           .map(r => String(r.vremya_otcheta))
           .filter(Boolean)
-          .map(s => (s.length === 5 ? `${s}:00` : s)) // нормализуем к HH:mm:ss
+          .map(s => (s.length === 5 ? `${s}:00` : s))
       )
       const times = Array.from(timesSet).sort((a, b) => a.localeCompare(b))
       const latest = times.at(-1) || ''
@@ -87,7 +88,6 @@ export default function Dashboard() {
   // --- 2) Локальная фильтрация по выбранному времени ---
   const rows = useMemo(() => {
     if (!selectedTime) return []
-    // фильтруем локально
     const norm = (s) => (String(s).length === 5 ? `${s}:00` : String(s))
     const filtered = allRowsForDate.filter(r => norm(r.vremya_otcheta) === selectedTime)
     console.log('[DASH] selectedTime=', selectedTime, 'filtered rows=', filtered.length)
@@ -95,8 +95,6 @@ export default function Dashboard() {
   }, [allRowsForDate, selectedTime])
 
   // --- Агрегации ---
-
-  // Все арендаторы
   const byTenant = useMemo(() => {
     const map = new Map()
     rows.forEach(r => {
@@ -108,20 +106,17 @@ export default function Dashboard() {
       .sort((a, b) => b.count - a.count)
   }, [rows])
 
-  // Отфильтрованные строки (по выбранному арендатору)
   const rowsFiltered = useMemo(() => {
     if (selectedTenant === 'ALL') return rows
     return rows.filter(r => (r.arendator || 'Без арендатора') === selectedTenant)
   }, [rows, selectedTenant])
 
-  // KPI
   const statusSummary = useMemo(() => {
     const working = rowsFiltered.filter(r => r.rabochij_nerabochij === 'Рабочий').length
     const notWorking = rowsFiltered.filter(r => r.rabochij_nerabochij === 'Нерабочий').length
     return { working, notWorking, total: rowsFiltered.length }
   }, [rowsFiltered])
 
-  // ТОП-10 по операциям
   const top10ByOperation = useMemo(() => {
     const map = new Map()
     rowsFiltered.forEach(r => {
@@ -134,7 +129,6 @@ export default function Dashboard() {
       .slice(0, 10)
   }, [rowsFiltered])
 
-  // ТОП-10 по станциям
   const top10ByStation = useMemo(() => {
     const map = new Map()
     rowsFiltered.forEach(r => {
@@ -146,6 +140,9 @@ export default function Dashboard() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
   }, [rowsFiltered])
+
+  // Диагностика составов массивов (можно удалить позже)
+  console.log('[DASH] byTenant=', byTenant.length, 'topOps=', top10ByOperation.length, 'topStations=', top10ByStation.length)
 
   return (
     <Box sx={{ p: 3 }}>
@@ -225,22 +222,19 @@ export default function Dashboard() {
             </Button>
           </Stack>
 
-          <Box sx={{ width: '100%', height: 320 }}>
-            <ResponsiveContainer width="100%" height="100%">
+          <Box sx={{ width: '100%', height: 320, minWidth: 300 }}>
+            <ResponsiveContainer key={`tenants-${selectedTime}-${byTenant.length}`} width="100%" height="100%">
               <BarChart data={byTenant} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} />
+                <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar
-                  dataKey="count"
-                  isAnimationActive={false}
-                  onClick={(entry) => setSelectedTenant(entry.name)}
-                >
+                <Bar dataKey="count" isAnimationActive={false}>
                   {byTenant.map((t, i) => (
                     <Cell
                       key={i}
                       cursor="pointer"
+                      onClick={() => setSelectedTenant(t.name)}
                       fill={selectedTenant !== 'ALL' && t.name === selectedTenant ? BAR_SELECTED : BAR_DEFAULT}
                     />
                   ))}
@@ -248,11 +242,9 @@ export default function Dashboard() {
               </BarChart>
             </ResponsiveContainer>
           </Box>
-          {selectedTenant !== 'ALL' && (
-            <Typography variant="body2" sx={{ mt: 1 }}>
-              Активный фильтр: <b>{selectedTenant}</b>
-            </Typography>
-          )}
+          <Typography variant="caption" sx={{ opacity: 0.7 }}>
+            {`Позиции: ${byTenant.length}`}
+          </Typography>
         </CardContent>
       </Card>
 
@@ -262,17 +254,20 @@ export default function Dashboard() {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>ТОП-10 по операциям</Typography>
-              <Box sx={{ width: '100%', height: 320 }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <Box sx={{ width: '100%', height: 320, minWidth: 300 }}>
+                <ResponsiveContainer key={`ops-${selectedTime}-${top10ByOperation.length}`} width="100%" height="100%">
                   <BarChart data={top10ByOperation} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} />
+                    <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
                     <YAxis allowDecimals={false} />
                     <Tooltip />
                     <Bar dataKey="count" isAnimationActive={false} />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
+              <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                {`Позиции: ${top10ByOperation.length}`}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -281,17 +276,20 @@ export default function Dashboard() {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>ТОП-10 по станциям операций</Typography>
-              <Box sx={{ width: '100%', height: 320 }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <Box sx={{ width: '100%', height: 320, minWidth: 300 }}>
+                <ResponsiveContainer key={`stations-${selectedTime}-${top10ByStation.length}`} width="100%" height="100%">
                   <BarChart data={top10ByStation} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} />
+                    <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
                     <YAxis allowDecimals={false} />
                     <Tooltip />
                     <Bar dataKey="count" isAnimationActive={false} />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
+              <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                {`Позиции: ${top10ByStation.length}`}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>

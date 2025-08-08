@@ -19,6 +19,7 @@
     "bcryptjs": "^2.4.3",
     "xlsx": "^0.18.5",
     "file-saver": "^2.0.5",
-    "@mui/x-date-pickers": "^6.15.0"
+    "@mui/x-date-pickers": "^6.15.0",
+    "recharts": "^2.13.3"
   }
 } 

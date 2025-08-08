@@ -219,6 +219,25 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+                // 1) Сразу под KPI-блоком добавь тестовый график
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>Test chart</Typography>
+            <div style={{ width: 900 }}>
+              <BarChart width={900} height={220} data={[
+                { name: 'A', count: 12 }, { name: 'B', count: 7 }, { name: 'C', count: 19 }
+              ]} margin={{ top: 10, right: 20, left: 0, bottom: 30 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis allowDecimals={false} domain={[0, 'dataMax']} />
+                <Tooltip />
+                <Bar dataKey="count" barSize={28} />
+              </BarChart>
+            </div>
+          </CardContent>
+        </Card>
+        
         <Card sx={{ flex: 1 }}>
           <CardContent>
             <Typography variant="subtitle2">Рабочие</Typography>
@@ -242,6 +261,31 @@ export default function Dashboard() {
               Сбросить фильтр
             </Button>
           </Stack>
+
+
+          // 2) В твоём графике "Вагоны по арендаторам" — добавь domain и barSize
+<BarChart
+  width={tenantWidth}
+  height={CHART_HEIGHT}
+  data={byTenant}
+  margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
+  key={`tenants-${selectedTime}-${byTenant.length}-${tenantWidth}`}
+>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
+  <YAxis allowDecimals={false} domain={[0, 'dataMax']} />
+  <Tooltip />
+  <Bar dataKey="count" barSize={28} isAnimationActive={false}>
+    {byTenant.map((t, i) => (
+      <Cell
+        key={i}
+        cursor="pointer"
+        onClick={() => setSelectedTenant(t.name)}
+        fill={selectedTenant !== 'ALL' && t.name === selectedTenant ? '#ff9800' : '#2196f3'}
+      />
+    ))}
+  </Bar>
+</BarChart>
 
           <Box ref={tenantRef} sx={{ width: '100%', minWidth: 320 }}>
             {tenantWidth > 0 && (

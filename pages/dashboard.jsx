@@ -240,11 +240,14 @@ export default function Dashboard() {
                 margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
                 key={`tenants-${latestTime}-${byTenant.length}-${chartWidth}`}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0} />
-                <YAxis allowDecimals={false} domain={[0, 'dataMax']} />
+                <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0}
+                       tick={{ fill: '#424242', fontSize: 12 }} />
+                <YAxis allowDecimals={false} domain={[0, 'dataMax']}
+                       tick={{ fill: '#424242', fontSize: 12 }} />
                 <Tooltip />
-                <Bar dataKey="count" barSize={28} isAnimationActive={false} />
+                {/* ВОТ ТУТ ГЛАВНОЕ: задаём явный цвет столбцов */}
+                <Bar dataKey="count" barSize={28} isAnimationActive={false} fill="#1976d2" />
               </BarChart>
             )}
       

@@ -246,9 +246,9 @@ export default function Dashboard() {
                 <YAxis allowDecimals={false} domain={[0, 'dataMax']}
                        tick={{ fill: '#424242', fontSize: 12 }} />
                 <Tooltip />
-                {/* ВОТ ТУТ ГЛАВНОЕ: задаём явный цвет столбцов */}
                 <Bar dataKey="count" barSize={28} isAnimationActive={false} fill="#1976d2" />
               </BarChart>
+
             )}
       
             {/* Если Recharts по-прежнему не рисует — покажем подсказку */}

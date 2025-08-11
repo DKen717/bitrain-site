@@ -1,5 +1,5 @@
 // pages/dashboard.jsx
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { Box, Grid, Card, CardContent, Typography } from '@mui/material'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
@@ -8,7 +8,7 @@ import dayjs from 'dayjs'
 import { supabase } from '../src/supabaseClient'
 import dynamic from 'next/dynamic'
 
-// recharts — по-компонентно, без SSR
+// Recharts — по компонентам, без SSR
 const BarChart      = dynamic(() => import('recharts').then(m => m.BarChart),      { ssr: false })
 const Bar           = dynamic(() => import('recharts').then(m => m.Bar),           { ssr: false })
 const XAxis         = dynamic(() => import('recharts').then(m => m.XAxis),         { ssr: false })
@@ -18,7 +18,13 @@ const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid
 
 const CHART_HEIGHT = 320
 
-// ширина контейнера через ResizeObserver (без ResponsiveContainer)
+// --- рисуем столбики как <rect>, а не как <path> (устойчиво к CSS-ресетам) ---
+function BarRectShape({ x, y, width, height, fill }) {
+  if (!width || !height || width <= 0 || height <= 0) return null
+  return <rect x={x} y={y} width={width} height={height} fill={fill || '#1976d2'} />
+}
+
+// --- ширина контейнера через ResizeObserver ---
 function useContainerWidth() {
   const ref = useRef(null)
   const [width, setWidth] = useState(0)
@@ -47,7 +53,7 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(dayjs())      // дата отчёта
   const [latestTime, setLatestTime] = useState('')               // 'HH:mm:ss' за дату
   const [counts, setCounts] = useState({ total: 0, working: 0, notWorking: 0 })
-  const [rowsSlice, setRowsSlice] = useState([])                 // строки текущего среза (для графика)
+  const [rowsSlice, setRowsSlice] = useState([])                 // строки среза для графика
   const [loading, setLoading] = useState(false)
   const [errorText, setErrorText] = useState('')
 
@@ -83,7 +89,7 @@ export default function Dashboard() {
     return () => { canceled = true }
   }, [selectedDate])
 
-  // 2) Считаем KPI и забираем строки среза для инфографики
+  // 2) Считаем KPI и забираем строки среза
   useEffect(() => {
     let canceled = false
     ;(async () => {
@@ -91,8 +97,6 @@ export default function Dashboard() {
       setLoading(true); setErrorText('')
       try {
         const d = selectedDate.format('YYYY-MM-DD')
-
-        // сразу берём всё, что нужно и для KPI, и для графика
         const { data, error } = await supabase
           .from('Dislocation_daily')
           .select('rabochij_nerabochij, arendator')
@@ -123,7 +127,7 @@ export default function Dashboard() {
     return () => { canceled = true }
   }, [selectedDate, latestTime])
 
-  // 3) Данные для графика: кол-во вагонов по арендаторам (топ-15)
+  // 3) агрегируем по арендаторам (топ-15)
   const byTenant = useMemo(() => {
     const map = new Map()
     rowsSlice.forEach(r => {
@@ -164,102 +168,68 @@ export default function Dashboard() {
       {/* KPI */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle2">Всего вагонов</Typography>
-              <Typography variant="h3">{loading ? '…' : counts.total}</Typography>
-            </CardContent>
-          </Card>
+          <Card><CardContent>
+            <Typography variant="subtitle2">Всего вагонов</Typography>
+            <Typography variant="h3">{loading ? '…' : counts.total}</Typography>
+          </CardContent></Card>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle2">Рабочие</Typography>
-              <Typography variant="h3">{loading ? '…' : counts.working}</Typography>
-            </CardContent>
-          </Card>
+          <Card><CardContent>
+            <Typography variant="subtitle2">Рабочие</Typography>
+            <Typography variant="h3">{loading ? '…' : counts.working}</Typography>
+          </CardContent></Card>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle2">Нерабочие</Typography>
-              <Typography variant="h3">{loading ? '…' : counts.notWorking}</Typography>
-            </CardContent>
-          </Card>
+          <Card><CardContent>
+            <Typography variant="subtitle2">Нерабочие</Typography>
+            <Typography variant="h3">{loading ? '…' : counts.notWorking}</Typography>
+          </CardContent></Card>
         </Grid>
       </Grid>
 
-      // …выше — без изменений (KPI и прочее)
-
-      // === Инфографика: Вагоны по арендаторам ===
+      {/* Инфографика: Вагоны по арендаторам */}
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>Вагоны по арендаторам (топ-15)</Typography>
-      
-          {/* 0) Диагностика: базовый SVG — должен быть виден как синий прямоугольник */}
-          <Box sx={{ mb: 2 }}>
-            <svg width="220" height="24" style={{ border: '1px solid #ccc' }}>
-              <rect x="2" y="2" width="200" height="20" fill="#1976d2" />
-            </svg>
-            <Typography variant="caption" sx={{ ml: 1, opacity: .7 }}>
-              SVG-тест: если прямоугольник виден — SVG не скрыт стилями
-            </Typography>
-          </Box>
-      
-          {/* 1) Табличка-резерв — чтобы точно видеть данные */}
-          <Box sx={{ mb: 2, overflowX: 'auto' }}>
-            <table border="1" cellPadding="6" style={{ borderCollapse: 'collapse', minWidth: 420 }}>
-              <thead style={{ background: '#f5f5f5' }}>
-                <tr><th>Арендатор</th><th>Кол-во вагонов</th></tr>
-              </thead>
-              <tbody>
-                {byTenant.length === 0 ? (
-                  <tr><td colSpan="2" style={{ textAlign: 'center' }}>Нет данных</td></tr>
-                ) : (
-                  byTenant.map((r, i) => (
-                    <tr key={i}><td>{r.name || 'Без арендатора'}</td><td>{r.count}</td></tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </Box>
-      
-          {/* 2) Контейнер под Recharts */}
+
           <Box ref={chartRef} sx={{ width: '100%', minWidth: 320 }}>
-            {/* Диагностика: ширина и пример первой строки */}
-            <Typography variant="caption" sx={{ display: 'block', mb: 1, opacity: .7 }}>
-              debug: width={chartWidth}px; sample={byTenant[0] ? JSON.stringify(byTenant[0]) : '—'}
-            </Typography>
-      
-            {/* Попытка отрисовать Recharts (если ширина есть и данные есть) */}
             {chartWidth > 0 && byTenant.length > 0 && (
               <BarChart
                 width={chartWidth}
-                height={320}
+                height={CHART_HEIGHT}
                 data={byTenant}
                 margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
                 key={`tenants-${latestTime}-${byTenant.length}-${chartWidth}`}
               >
                 <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={0}
-                       tick={{ fill: '#424242', fontSize: 12 }} />
-                <YAxis allowDecimals={false} domain={[0, 'dataMax']}
-                       tick={{ fill: '#424242', fontSize: 12 }} />
+                <XAxis
+                  dataKey="name"
+                  angle={-20}
+                  textAnchor="end"
+                  height={60}
+                  interval={0}
+                  tick={{ fill: '#424242', fontSize: 12 }}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  domain={[0, 'dataMax']}
+                  tick={{ fill: '#424242', fontSize: 12 }}
+                />
                 <Tooltip />
-                <Bar dataKey="count" barSize={28} isAnimationActive={false} fill="#1976d2" />
+                {/* ← Кастомная форма: рисуем <rect>, а не <path> */}
+                <Bar
+                  dataKey="count"
+                  barSize={28}
+                  isAnimationActive={false}
+                  shape={<BarRectShape fill="#1976d2" />}
+                />
               </BarChart>
-
-            )}
-      
-            {/* Если Recharts по-прежнему не рисует — покажем подсказку */}
-            {chartWidth > 0 && byTenant.length > 0 && (
-              <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: .7 }}>
-                Если график выше пустой при наличии таблицы/ширины — вероятно, глобальные стили
-                скрывают SVG. Проверьте, что в CSS нет правил вроде <code>svg &#123; display: none &#125;</code> /
-                <code>overflow: hidden</code> на родителях. Ещё проверьте, что нет <code>filter: invert()</code> поверх контейнера.
-              </Typography>
             )}
           </Box>
+
+          <Typography variant="caption" sx={{ opacity: 0.7 }}>
+            Позиции: {byTenant.length} | container: {chartWidth}px
+          </Typography>
         </CardContent>
       </Card>
     </Box>

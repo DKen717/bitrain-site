@@ -189,15 +189,53 @@ export default function Dashboard() {
         </Grid>
       </Grid>
 
-      {/* Инфографика: Вагоны по арендаторам */}
+      // …выше — без изменений (KPI и прочее)
+
+      // === Инфографика: Вагоны по арендаторам ===
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>Вагоны по арендаторам (топ-15)</Typography>
+      
+          {/* 0) Диагностика: базовый SVG — должен быть виден как синий прямоугольник */}
+          <Box sx={{ mb: 2 }}>
+            <svg width="220" height="24" style={{ border: '1px solid #ccc' }}>
+              <rect x="2" y="2" width="200" height="20" fill="#1976d2" />
+            </svg>
+            <Typography variant="caption" sx={{ ml: 1, opacity: .7 }}>
+              SVG-тест: если прямоугольник виден — SVG не скрыт стилями
+            </Typography>
+          </Box>
+      
+          {/* 1) Табличка-резерв — чтобы точно видеть данные */}
+          <Box sx={{ mb: 2, overflowX: 'auto' }}>
+            <table border="1" cellPadding="6" style={{ borderCollapse: 'collapse', minWidth: 420 }}>
+              <thead style={{ background: '#f5f5f5' }}>
+                <tr><th>Арендатор</th><th>Кол-во вагонов</th></tr>
+              </thead>
+              <tbody>
+                {byTenant.length === 0 ? (
+                  <tr><td colSpan="2" style={{ textAlign: 'center' }}>Нет данных</td></tr>
+                ) : (
+                  byTenant.map((r, i) => (
+                    <tr key={i}><td>{r.name || 'Без арендатора'}</td><td>{r.count}</td></tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Box>
+      
+          {/* 2) Контейнер под Recharts */}
           <Box ref={chartRef} sx={{ width: '100%', minWidth: 320 }}>
-            {chartWidth > 0 && (
+            {/* Диагностика: ширина и пример первой строки */}
+            <Typography variant="caption" sx={{ display: 'block', mb: 1, opacity: .7 }}>
+              debug: width={chartWidth}px; sample={byTenant[0] ? JSON.stringify(byTenant[0]) : '—'}
+            </Typography>
+      
+            {/* Попытка отрисовать Recharts (если ширина есть и данные есть) */}
+            {chartWidth > 0 && byTenant.length > 0 && (
               <BarChart
                 width={chartWidth}
-                height={CHART_HEIGHT}
+                height={320}
                 data={byTenant}
                 margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
                 key={`tenants-${latestTime}-${byTenant.length}-${chartWidth}`}
@@ -209,10 +247,16 @@ export default function Dashboard() {
                 <Bar dataKey="count" barSize={28} isAnimationActive={false} />
               </BarChart>
             )}
+      
+            {/* Если Recharts по-прежнему не рисует — покажем подсказку */}
+            {chartWidth > 0 && byTenant.length > 0 && (
+              <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: .7 }}>
+                Если график выше пустой при наличии таблицы/ширины — вероятно, глобальные стили
+                скрывают SVG. Проверьте, что в CSS нет правил вроде <code>svg &#123; display: none &#125;</code> /
+                <code>overflow: hidden</code> на родителях. Ещё проверьте, что нет <code>filter: invert()</code> поверх контейнера.
+              </Typography>
+            )}
           </Box>
-          <Typography variant="caption" sx={{ opacity: 0.7 }}>
-            Позиции: {byTenant.length}
-          </Typography>
         </CardContent>
       </Card>
     </Box>

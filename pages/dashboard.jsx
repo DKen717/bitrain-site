@@ -201,7 +201,7 @@ export default function Dashboard() {
                 margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
                 key={`tenants-${latestTime}-${byTenant.length}-${chartWidth}`}
               >
-                <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
+                <CartesianGrid stroke="#e0e0e2" strokeDasharray="3 3" />
                 <XAxis
                   dataKey="name"
                   angle={-20}

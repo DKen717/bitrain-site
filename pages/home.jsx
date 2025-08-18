@@ -1,76 +1,114 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import { Box, Typography, Button, Grid, Paper } from '@mui/material'
+import { Box, Typography, Button, Grid, Alert, CircularProgress } from '@mui/material'
 import { supabase } from '../src/supabaseClient'
 import Link from 'next/link'
 
 export default function InternalHomePage() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [errorMsg, setErrorMsg] = useState(null)
   const router = useRouter()
 
   useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user }
-      } = await supabase.auth.getUser()
+    let cancelled = false
 
-      if (!user) {
-        router.push('/')
-        return
-      }
+    const load = async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser()
+        if (error) throw error
 
-      setUser(user)
+        const u = data?.user
+        if (!u) {
+          router.replace('/')
+          return
+        }
 
-      const { data: profileData, error } = await supabase
-        .from('users_custom')
-        .select('role, company_id')
-        .eq('email', user.email)
-        .single()
+        if (cancelled) return
+        setUser(u)
 
-      if (!error) {
+        const { data: profileData, error: pErr } = await supabase
+          .from('users_custom')
+          .select('role, company_id')
+          .eq('email', u.email)
+          .single()
+
+        if (pErr) throw new Error(`Профиль не найден: ${pErr.message}`)
+        if (cancelled) return
         setProfile(profileData)
-      } else {
-        console.error('Ошибка загрузки профиля:', error.message)
+      } catch (e) {
+        if (!cancelled) setErrorMsg(e.message || 'Ошибка авторизации')
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     }
 
-    getUser()
-  }, [])
+    load()
+
+    // если сессия изменилась — реагируем
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) router.replace('/')
+    })
+
+    return () => {
+      cancelled = true
+      sub?.subscription?.unsubscribe?.()
+    }
+  }, [router])
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+    } catch (e) {
+      setErrorMsg(e.message || 'Не удалось выйти')
+    } finally {
+      router.replace('/')
+    }
   }
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h5" gutterBottom>Добро пожаловать в систему</Typography>
+      <Typography variant="h5" gutterBottom>
+        Добро пожаловать в систему
+      </Typography>
 
-      {profile && (
+      {loading && (
+        <Box sx={{ mt: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
+          <CircularProgress size={22} />
+          <Typography color="text.secondary">Загружаем профиль…</Typography>
+        </Box>
+      )}
+
+      {!loading && errorMsg && (
+        <Alert severity="error" sx={{ mt: 2 }}>{errorMsg}</Alert>
+      )}
+
+      {!loading && profile && (
         <Grid container spacing={2} sx={{ mt: 2 }}>
           <Grid item>
-            <Link href="/dashboard" passHref legacyBehavior>
-              <Button variant="outlined">📊 Дэшборд</Button>
-            </Link>
+            <Button component={Link} href="/dashboard" variant="outlined">
+              📊 Дэшборд
+            </Button>
           </Grid>
           <Grid item>
-            <Link href="/dislocation" passHref legacyBehavior>
-              <Button variant="outlined">🚂 Дислокация</Button>
-            </Link>
+            <Button component={Link} href="/dislocation" variant="outlined">
+              🚂 Дислокация
+            </Button>
           </Grid>
 
           {profile.role === 'superadmin' && (
             <>
               <Grid item>
-                <Link href="/admin/users" passHref legacyBehavior>
-                  <Button variant="contained">👥 Пользователи</Button>
-                </Link>
+                <Button component={Link} href="/admin/users" variant="contained">
+                  👥 Пользователи
+                </Button>
               </Grid>
               <Grid item>
-                <Link href="/admin/companies" passHref legacyBehavior>
-                  <Button variant="contained">🏢 Компании</Button>
-                </Link>
+                <Button component={Link} href="/admin/companies" variant="contained">
+                  🏢 Компании
+                </Button>
               </Grid>
             </>
           )}
@@ -78,7 +116,9 @@ export default function InternalHomePage() {
       )}
 
       <Box sx={{ mt: 4 }}>
-        <Button color="error" onClick={handleLogout}>Выйти</Button>
+        <Button color="error" onClick={handleLogout} disabled={loading}>
+          Выйти
+        </Button>
       </Box>
     </Box>
   )

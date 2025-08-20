@@ -125,7 +125,7 @@ export default function Home() {
                       avatar={
                         <Box
                           aria-hidden
-                          sx={{
+                          sx={(t) => ({
                             width: 48,
                             height: 48,
                             borderRadius: 2,
@@ -133,7 +133,7 @@ export default function Home() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
-                          }}
+                          })}
                         >
                           <Icon sx={{ color: 'primary.main' }} />
                         </Box>
@@ -183,7 +183,7 @@ export default function Home() {
                       avatar={
                         <Box
                           aria-hidden
-                          sx={{
+                          sx={(t) => ({
                             width: 48,
                             height: 48,
                             borderRadius: 2,
@@ -191,7 +191,7 @@ export default function Home() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
-                          }}
+                          })}
                         >
                           <Icon sx={{ color: 'primary.main' }} />
                         </Box>

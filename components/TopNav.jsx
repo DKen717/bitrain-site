@@ -10,7 +10,7 @@ export default function TopNav({ user }) {
   const isPublic = pathname === '/' || pathname === '/login'
 
   const baseItems = [
-    { href: '/', label: 'Главная' },
+    { href: '/home', label: 'Главная' },
     { href: '/dislocation', label: 'Дислокация' },
     { href: '/dashboard', label: 'Дэшборд' },
     { href: '/reports', label: 'Отчёты' },

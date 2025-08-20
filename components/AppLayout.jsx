@@ -22,6 +22,7 @@ import { supabase } from '../src/supabaseClient'
 
 const drawerWidth = 260
 const collapsedWidth = 72
+const STORAGE_KEY = 'bt_sidebar_collapsed'
 
 export default function AppLayout({ children, withTopBar = false, collapsedDefault = false }) {
   const router = useRouter()
@@ -32,7 +33,27 @@ export default function AppLayout({ children, withTopBar = false, collapsedDefau
   const [email, setEmail] = useState(null)
   const [collapsed, setCollapsed] = useState(collapsedDefault)
 
-  // ---- auth + роль (users_custom с фоллбэком к profiles) ----
+  // --- restore collapsed from localStorage (client-only) ---
+  useEffect(() => {
+    try {
+      const v = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY) : null
+      if (v === '1' || v === '0') setCollapsed(v === '1')
+      else setCollapsed(Boolean(collapsedDefault))
+    } catch {
+      setCollapsed(Boolean(collapsedDefault))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // один раз при монтировании
+
+  const toggleCollapsed = () => {
+    setCollapsed(prev => {
+      const next = !prev
+      try { window.localStorage.setItem(STORAGE_KEY, next ? '1' : '0') } catch {}
+      return next
+    })
+  }
+
+  // ---- auth + роль ----
   useEffect(() => {
     const init = async () => {
       const { data } = await supabase.auth.getSession()
@@ -46,7 +67,6 @@ export default function AppLayout({ children, withTopBar = false, collapsedDefau
       let roleVal = null
       let nameVal = null
 
-      // 1) users_custom по user_id
       try {
         const { data: uc } = await supabase
           .from('users_custom')
@@ -56,7 +76,6 @@ export default function AppLayout({ children, withTopBar = false, collapsedDefau
         if (uc) { roleVal = uc.role; nameVal = uc.full_name || null }
       } catch {}
 
-      // 2) users_custom по email
       if (!roleVal) {
         try {
           const { data: uc2 } = await supabase
@@ -68,7 +87,6 @@ export default function AppLayout({ children, withTopBar = false, collapsedDefau
         } catch {}
       }
 
-      // 3) profiles по id (если другая схема)
       if (!roleVal) {
         try {
           const { data: p } = await supabase
@@ -142,7 +160,7 @@ export default function AppLayout({ children, withTopBar = false, collapsedDefau
 
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header логотип + кнопка свёртки */}
+      {/* Header: логотип + кнопка свёртки (без инфо о пользователе) */}
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, justifyContent: collapsed ? 'center' : 'space-between' }}>
         <Typography
           variant="h6"
@@ -155,8 +173,7 @@ export default function AppLayout({ children, withTopBar = false, collapsedDefau
         >
           {collapsed ? 'BI' : 'BI Train'}
         </Typography>
-        {/* Кнопка сворачивания/разворачивания (только десктоп) */}
-        <IconButton size="small" onClick={() => setCollapsed((v) => !v)} sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
+        <IconButton size="small" onClick={toggleCollapsed} sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
           {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
         </IconButton>
       </Box>
@@ -170,14 +187,14 @@ export default function AppLayout({ children, withTopBar = false, collapsedDefau
       <Box sx={{ flexGrow: 1 }} />
       <Divider sx={{ mt: 1 }} />
 
-      {/* Нижняя панель (аватар + выход). Текст прячем в mini-режиме */}
+      {/* Нижняя панель: аватар + выход. Текст скрыт в mini-режиме */}
       <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Avatar sx={{ width: 36, height: 36 }}>
           {(email || 'U')[0].toUpperCase()}
         </Avatar>
         {!collapsed && (
           <Box sx={{ minWidth: 0 }}>
-            {/* ты писал, что сам будешь выводить информацию на страницах — тут ничего лишнего не показываем */}
+            {/* Информацию о пользователе под логотипом убрали, здесь оставили короткую подпись */}
             <Typography variant="body2" noWrap>{fullName || email || 'Пользователь'}</Typography>
             <Typography variant="caption" color="text.secondary" noWrap>{role || 'user'}</Typography>
           </Box>
@@ -197,7 +214,7 @@ export default function AppLayout({ children, withTopBar = false, collapsedDefau
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* плавающая кнопка-гамбургер для мобилки */}
+      {/* плавающий гамбургер для мобилки */}
       {!withTopBar && (
         <IconButton
           onClick={() => setMobileOpen(true)}

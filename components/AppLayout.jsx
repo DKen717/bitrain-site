@@ -90,16 +90,15 @@ export default function AppLayout({ children, withTopBar = false }) {
   const isSuperadmin = role === 'superadmin'
 
   const baseMenu = [
+    { href: '/home', label: 'Главная', icon: <DashboardIcon /> },
     { href: '/dashboard', label: 'Дэшборд', icon: <DashboardIcon /> },
     { href: '/dislocation', label: 'Дислокация', icon: <MapIcon /> },
-    { href: '/reports', label: 'Отчёты', icon: <AssessmentIcon /> },
+    { href: '/counterparties', label: 'Контрагенты', icon: <MapIcon /> },
     { href: '/my-ps', label: 'Мой ПС', icon: <TrainIcon /> },
-    { href: '/counterparties', label: 'Контрагенты', icon: <ContactsIcon /> },
   ]
   const adminMenu = [
     { href: '/admin/users', label: 'Пользователи', icon: <PeopleIcon /> },
     { href: '/admin/companies', label: 'Компании', icon: <BusinessIcon /> },
-    { href: '/settings', label: 'Настройки', icon: <SettingsIcon /> },
   ]
   const items = isSuperadmin ? [...baseMenu, ...adminMenu] : baseMenu
 

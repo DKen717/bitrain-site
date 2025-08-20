@@ -1,12 +1,11 @@
 // pages/dashboard.jsx
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { Box, Grid, Card, CardContent, Typography } from '@mui/material'
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import dayjs from 'dayjs'
 import { supabase } from '../src/supabaseClient'
 import dynamic from 'next/dynamic'
+import AppLayout from '../components/AppLayout'
 
 // Recharts — по компонентам, без SSR
 const BarChart      = dynamic(() => import('recharts').then(m => m.BarChart),      { ssr: false })
@@ -18,13 +17,11 @@ const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid
 
 const CHART_HEIGHT = 320
 
-// --- рисуем столбики как <rect>, а не как <path> (устойчиво к CSS-ресетам) ---
 function BarRectShape({ x, y, width, height, fill }) {
   if (!width || !height || width <= 0 || height <= 0) return null
   return <rect x={x} y={y} width={width} height={height} fill={fill || '#1976d2'} />
 }
 
-// --- ширина контейнера через ResizeObserver ---
 function useContainerWidth() {
   const ref = useRef(null)
   const [width, setWidth] = useState(0)
@@ -50,10 +47,10 @@ function useContainerWidth() {
 }
 
 export default function Dashboard() {
-  const [selectedDate, setSelectedDate] = useState(dayjs())      // дата отчёта
-  const [latestTime, setLatestTime] = useState('')               // 'HH:mm:ss' за дату
+  const [selectedDate, setSelectedDate] = useState(dayjs())
+  const [latestTime, setLatestTime] = useState('')
   const [counts, setCounts] = useState({ total: 0, working: 0, notWorking: 0 })
-  const [rowsSlice, setRowsSlice] = useState([])                 // строки среза для графика
+  const [rowsSlice, setRowsSlice] = useState([])
   const [loading, setLoading] = useState(false)
   const [errorText, setErrorText] = useState('')
 
@@ -89,7 +86,7 @@ export default function Dashboard() {
     return () => { canceled = true }
   }, [selectedDate])
 
-  // 2) Считаем KPI и забираем строки среза
+  // 2) KPI и строки среза
   useEffect(() => {
     let canceled = false
     ;(async () => {
@@ -127,7 +124,7 @@ export default function Dashboard() {
     return () => { canceled = true }
   }, [selectedDate, latestTime])
 
-  // 3) агрегируем по арендаторам (топ-15)
+  // 3) агрегация по арендаторам (топ-15)
   const byTenant = useMemo(() => {
     const map = new Map()
     rowsSlice.forEach(r => {
@@ -147,20 +144,18 @@ export default function Dashboard() {
   }, [selectedDate, latestTime])
 
   return (
-    <Box sx={{ p: 3 }}>
+    <AppLayout>
       <Typography variant="h4" gutterBottom>Дэшборд</Typography>
       <Typography variant="body2" sx={{ mb: 2, opacity: 0.7 }}>{subtitle}</Typography>
 
       {/* Дата */}
       <Box sx={{ maxWidth: 360, mb: 2 }}>
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DatePicker
-            label="Дата отчета"
-            value={selectedDate}
-            onChange={(v) => setSelectedDate(v)}
-            slotProps={{ textField: { fullWidth: true } }}
-          />
-        </LocalizationProvider>
+        <DatePicker
+          label="Дата отчёта"
+          value={selectedDate}
+          onChange={(v) => setSelectedDate(v)}
+          slotProps={{ textField: { fullWidth: true } }}
+        />
       </Box>
 
       {errorText && <Typography color="error" sx={{ mb: 2 }}>{errorText}</Typography>}
@@ -216,7 +211,6 @@ export default function Dashboard() {
                   tick={{ fill: '#424242', fontSize: 12 }}
                 />
                 <Tooltip />
-                {/* ← Кастомная форма: рисуем <rect>, а не <path> */}
                 <Bar
                   dataKey="count"
                   barSize={28}
@@ -232,6 +226,6 @@ export default function Dashboard() {
           </Typography>
         </CardContent>
       </Card>
-    </Box>
+    </AppLayout>
   )
 }

@@ -1,0 +1,62 @@
+/* styles/bi-palette.css — BI Train palette (HSL tokens) */
+:root{
+  --background: 0 0% 98%;
+  --foreground: 220 9% 20%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 220 9% 20%;
+
+  --primary: 220 13% 30%;
+  --primary-foreground: 0 0% 98%;
+  --primary-hover: 220 13% 25%;
+
+  --secondary: 220 14% 93%;
+  --secondary-foreground: 220 9% 25%;
+
+  --muted-foreground: 220 9% 50%;
+
+  --destructive: 0 70% 50%;
+  --warning: 35 85% 55%;
+  --success: 142 70% 40%;
+
+  --border: 220 14% 85%;
+  --table-header: 220 14% 95%;
+  --table-hover: 220 13% 92%;
+
+  --sidebar-background: 0 0% 98%;
+  --sidebar-foreground: 240 5.3% 26.1%;
+  --sidebar-border: 220 13% 91%;
+
+  --chart-primary: 220 13% 30%;
+  --chart-secondary: 220 9% 40%;
+  --chart-accent: 220 9% 60%;
+
+  --radius: .5rem;
+}
+
+.dark{
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+
+  --muted-foreground: 215 20.2% 65.1%;
+
+  --destructive: 0 62.8% 30.6%;
+  --warning: 35 85% 50%;
+  --success: 142 70% 38%;
+
+  --border: 217.2 32.6% 17.5%;
+  --table-header: 217.2 32.6% 17.5%;
+  --table-hover: 217.2 32.6% 20%;
+
+  --sidebar-background: 240 5.9% 10%;
+  --sidebar-foreground: 240 4.8% 95.9%;
+  --sidebar-border: 240 3.7% 15.9%;
+}

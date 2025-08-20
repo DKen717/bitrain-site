@@ -12,19 +12,16 @@ import dynamic from 'next/dynamic'
 import AppLayout from '../components/AppLayout'
 import { supabase } from '../src/supabaseClient'
 
-// ✅ Надёжная обёртка Recharts: импорт внутри компонента, ssr: false
+// Надёжный Recharts: импорт внутри компонента + ssr: false
 const TenantsChart = dynamic(() =>
   Promise.resolve(function TenantsChartImpl({ width, height, data }) {
     const { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } = require('recharts')
-    const BarRectShape = (props) => {
-      const { x, y, width: w, height: h } = props
+    const BarRectShape = ({ x, y, width: w, height: h }) => {
       if (!w || !h || w <= 0 || h <= 0) return null
       return <rect x={x} y={y} width={w} height={h} fill="hsl(var(--chart-primary))" />
     }
     return (
-      <BarChart width={width} height={height} data={data}
-        margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
-      >
+      <BarChart width={width} height={height} data={data} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
         <CartesianGrid stroke="hsl(var(--table-border))" strokeDasharray="3 3" />
         <XAxis
           dataKey="name"
@@ -34,11 +31,7 @@ const TenantsChart = dynamic(() =>
           interval={0}
           tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
         />
-        <YAxis
-          allowDecimals={false}
-          domain={[0, 'dataMax']}
-          tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
-        />
+        <YAxis allowDecimals={false} domain={[0, 'dataMax']} tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }} />
         <Tooltip />
         <Bar dataKey="count" barSize={28} isAnimationActive={false} shape={<BarRectShape />} />
       </BarChart>
@@ -61,10 +54,7 @@ function useContainerWidth() {
       }
     })
     ro.observe(el)
-    const onResize = () => {
-      const w = el.getBoundingClientRect().width
-      if (w) setWidth(w)
-    }
+    const onResize = () => setWidth(el.getBoundingClientRect().width || 0)
     onResize()
     window.addEventListener('resize', onResize)
     return () => { window.removeEventListener('resize', onResize); ro.disconnect() }
@@ -75,9 +65,9 @@ function useContainerWidth() {
 export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState(dayjs())
 
-  // время среза: raw — как в БД, disp — 'HH:MM' для UI
-  const [latestTimeRaw, setLatestTimeRaw] = useState('')
-  const [latestTimeDisp, setLatestTimeDisp] = useState('')
+  // время среза
+  const [latestTimeRaw, setLatestTimeRaw] = useState('')   // как в БД (HH:MM[:SS])
+  const [latestTimeDisp, setLatestTimeDisp] = useState('') // HH:MM для подписи
 
   const [counts, setCounts] = useState({ total: 0, working: 0, notWorking: 0 })
   const [rowsSlice, setRowsSlice] = useState([])
@@ -86,12 +76,11 @@ export default function DashboardPage() {
 
   const [chartRef, chartWidth] = useContainerWidth()
 
-  // 1) Последнее время за дату
+  // 1) последнее время за дату
   useEffect(() => {
     let canceled = false
     ;(async () => {
-      setErrorText('')
-      setLatestTimeRaw(''); setLatestTimeDisp('')
+      setErrorText(''); setLatestTimeRaw(''); setLatestTimeDisp('')
       try {
         const d = selectedDate.format('YYYY-MM-DD')
         const { data, error } = await supabase
@@ -102,10 +91,7 @@ export default function DashboardPage() {
 
         if (error) throw error
 
-        const times = [...new Set((data || [])
-          .map(r => String(r.vremya_otcheta))
-          .filter(Boolean)
-        )]
+        const times = [...new Set((data || []).map(r => String(r.vremya_otcheta)).filter(Boolean))]
           .map(raw => ({ raw, norm: raw.length === 5 ? `${raw}:00` : raw }))
           .sort((a,b) => a.norm.localeCompare(b.norm))
 
@@ -121,7 +107,7 @@ export default function DashboardPage() {
     return () => { canceled = true }
   }, [selectedDate])
 
-  // 2) Срез на дату+время
+  // 2) срез на дату+время (берём только нужные поля)
   useEffect(() => {
     let canceled = false
     ;(async () => {
@@ -131,7 +117,7 @@ export default function DashboardPage() {
         const d = selectedDate.format('YYYY-MM-DD')
         const { data, error } = await supabase
           .from('Dislocation_daily')
-          .select('*')
+          .select('rabochij_nerabochij, arendator, nomer_vagona, dney_bez_operacii, prostoj_na_stancii, stanciya_operacii')
           .eq('data_otcheta', d)
           .eq('vremya_otcheta', latestTimeRaw)
 
@@ -144,7 +130,11 @@ export default function DashboardPage() {
 
         if (!canceled) { setCounts({ total, working, notWorking }); setRowsSlice(rows) }
       } catch (e) {
-        if (!canceled) { setCounts({ total: 0, working: 0, notWorking: 0 }); setRowsSlice([]); setErrorText(e.message || 'Ошибка загрузки данных') }
+        if (!canceled) {
+          setCounts({ total: 0, working: 0, notWorking: 0 })
+          setRowsSlice([])
+          setErrorText(e.message || 'Ошибка загрузки данных')
+        }
       } finally {
         if (!canceled) setLoading(false)
       }
@@ -152,11 +142,11 @@ export default function DashboardPage() {
     return () => { canceled = true }
   }, [selectedDate, latestTimeRaw])
 
-  // 3) Агрегация по арендаторам (топ-15)
+  // 3) агрегат по арендаторам (топ-15)
   const byTenant = useMemo(() => {
     const map = new Map()
     rowsSlice.forEach(r => {
-      const k = r.arendator || r.tenant || 'Без арендатора'
+      const k = (r.arendator && String(r.arendator).trim()) || 'Без арендатора'
       map.set(k, (map.get(k) || 0) + 1)
     })
     return Array.from(map.entries())
@@ -165,34 +155,12 @@ export default function DashboardPage() {
       .slice(0, 15)
   }, [rowsSlice])
 
-  // ---- детектор полей ----
-  const getNum = (v) => {
-    const n = Number(v)
-    return Number.isFinite(n) ? n : null
-  }
-  const pickFirstNumber = (row, keys) => {
-    for (const k of keys) {
-      const n = getNum(row?.[k])
-      if (n !== null) return n
-    }
-    return null
-  }
-  const pickFirstDate = (row, keys) => {
-    for (const k of keys) {
-      const v = row?.[k]
-      if (!v) continue
-      const d = dayjs(v)
-      if (d.isValid()) return d
-    }
-    return null
-  }
-
-  // 4) Топ-10 без операций: сначала пробуем числовые поля, иначе считаем от даты последней операции
+  // 4) топ-10 без операций
   const topNoOps = useMemo(() => {
     return rowsSlice
       .map(r => ({
-        wagon:  r.vagon_no || r.vagon || r.wagon_no || r.wagon || '',
-        tenant: r.arendator || r.tenant || '',
+        wagon:  r.nomer_vagona ?? '',
+        tenant: r.arendator ?? '',
         days:   Number(r.dney_bez_operacii ?? 0)
       }))
       .filter(x => x.wagon && Number.isFinite(x.days) && x.days > 0)
@@ -200,12 +168,12 @@ export default function DashboardPage() {
       .slice(0, 10)
   }, [rowsSlice])
 
-  // 5) Топ-10 простоя на станции: числовые поля или считаем от даты прибытия/начала простоя
+  // 5) топ-10 простоя на станции
   const topDwell = useMemo(() => {
     return rowsSlice
       .map(r => ({
-        wagon:   r.vagon_no || r.vagon || r.wagon_no || r.wagon || '',
-        station: r.stantziya || r.stantciya || r.station || r.station_name || '',
+        wagon:   r.nomer_vagona ?? '',
+        station: r.stanciya_operacii ?? '',
         days:    Number(r.prostoj_na_stancii ?? 0)
       }))
       .filter(x => x.wagon && x.station && Number.isFinite(x.days) && x.days > 0)
@@ -218,9 +186,6 @@ export default function DashboardPage() {
     const t = latestTimeDisp || '—'
     return `Срез на ${d} ${t}`
   }, [selectedDate, latestTimeDisp])
-
-  // (dev) Подсказываем, какие ключи увидели, если «топы» пустые
-  const showFieldHint = !loading && rowsSlice.length > 0 && topNoOps.length === 0 && topDwell.length === 0
 
   return (
     <AppLayout collapsedDefault>
@@ -263,20 +228,20 @@ export default function DashboardPage() {
         </Grid>
       </Grid>
 
-      {/* График по арендаторам */}
+      {/* График: Вагоны по арендаторам */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>Вагоны по арендаторам (топ-15)</Typography>
-          <Box ref={chartRef} sx={{ width: '100%', minWidth: 320 }}>
-            {chartWidth > 0 && byTenant.length > 0 ? (
-              <TenantsChart width={chartWidth} height={CHART_HEIGHT} data={byTenant} />
-            ) : (
-              <Typography color="text.secondary">Нет данных для отображения.</Typography>
-            )}
-          </Box>
-          <Typography variant="caption" sx={{ opacity: 0.7 }}>
-            Позиции: {byTenant.length} · контейнер: {chartWidth}px
-          </Typography>
+        <Box ref={chartRef} sx={{ width: '100%', minWidth: 320 }}>
+          {chartWidth > 0 && byTenant.length > 0 ? (
+            <TenantsChart width={chartWidth} height={CHART_HEIGHT} data={byTenant} />
+          ) : (
+            <Typography color="text.secondary">Нет данных для отображения.</Typography>
+          )}
+        </Box>
+        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+          Позиции: {byTenant.length} · контейнер: {chartWidth}px
+        </Typography>
         </CardContent>
       </Card>
 
@@ -302,9 +267,9 @@ export default function DashboardPage() {
                   <TableBody>
                     {topNoOps.map((r, i) => (
                       <TableRow key={i} hover>
-                        <TableCell>{r.wagon || '—'}</TableCell>
+                        <TableCell>{r.wagon}</TableCell>
                         <TableCell>{r.tenant || '—'}</TableCell>
-                        <TableCell align="right">{r.days ?? '—'}</TableCell>
+                        <TableCell align="right">{r.days}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -337,9 +302,9 @@ export default function DashboardPage() {
                   <TableBody>
                     {topDwell.map((r, i) => (
                       <TableRow key={i} hover>
-                        <TableCell>{r.wagon || '—'}</TableCell>
+                        <TableCell>{r.wagon}</TableCell>
                         <TableCell>{r.station || '—'}</TableCell>
-                        <TableCell align="right">{r.days ?? '—'}</TableCell>
+                        <TableCell align="right">{r.days}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -351,16 +316,6 @@ export default function DashboardPage() {
           </Card>
         </Grid>
       </Grid>
-
-      {showFieldHint && (
-        <Alert sx={{ mt: 2 }} severity="info">
-          Для расчёта «топов» не найдено подходящих колонок. 
-          Проверь, есть ли в <strong>Dislocation_daily</strong> поля вроде:
-          <code> days_no_ops / bez_operacii_dney / prostoi_dney </code> или даты
-          <code> last_operation_date / data_pribytiya / data_nachala_prostoya</code>.
-          Если названия другие — скажи, я подставлю точно.
-        </Alert>
-      )}
     </AppLayout>
   )
 }

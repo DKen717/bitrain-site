@@ -1,47 +1,91 @@
+// components/TopNav.jsx
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { supabase } from '../src/supabaseClient'
 
 export default function TopNav({ user }) {
   const router = useRouter()
-  const isIndexPage = router.pathname === '/'
-  const isLoginPage = router.pathname === '/login' // 🔹 Добавлено
+  const pathname = router.pathname
+  const isPublic = pathname === '/' || pathname === '/login'
+
+  const baseItems = [
+    { href: '/', label: 'Главная' },
+    { href: '/dislocation', label: 'Дислокация' },
+    { href: '/dashboard', label: 'Дэшборд' },
+    { href: '/reports', label: 'Отчёты' },
+  ]
+
+  const adminItems = [
+    { href: '/admin/users', label: 'Пользователи' },
+    { href: '/admin/companies', label: 'Компании' },
+  ]
+
+  const items = user?.role === 'superadmin' ? [...baseItems, ...adminItems] : baseItems
+
+  const isActive = (href) => {
+    if (href === '/') return pathname === '/'
+    return pathname.startsWith(href)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut()
+      router.push('/login')
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   return (
-    <AppBar position="static">
-      <Toolbar>
-      <Typography 
-        variant="h6" 
-        sx={{ flexGrow: 1, cursor: 'pointer', textDecoration: 'none' }} 
-        component={Link} 
-        href="/"
-      >
-        BI Train
-      </Typography>
+    <AppBar position="sticky">
+      <Toolbar sx={{ minHeight: 72 }}>
+        <Typography
+          variant="h6"
+          component={Link}
+          href="/"
+          sx={{
+            flexGrow: isPublic ? 1 : 0,
+            fontWeight: 800,
+            letterSpacing: -0.3,
+            color: 'inherit',
+            textDecoration: 'none',
+            mr: 2
+          }}
+        >
+          BI Train
+        </Typography>
 
-        {/* 🔽 Навигация скрывается на /login */}
-        {!isLoginPage && (
-          <Box>
-            {isIndexPage ? (
-              <Button color="inherit" component={Link} href="/login">Вход</Button>
-            ) : (
-              <>
-                <Button color="inherit" component={Link} href="/">Главная</Button>
-                <Button color="inherit" component={Link} href="/dislocation">Дислокация</Button>
-                <Button color="inherit" component={Link} href="/dashboard">Дэшборд</Button>
-                <Button color="inherit" component={Link} href="/my-ps">Мой ПС</Button>
-                <Button color="inherit" component={Link} href="/counterparties">Контрагенты</Button>
-
-                {user?.role === 'superadmin' && (
-                  <>
-                    <Button color="inherit" component={Link} href="/admin/users">Пользователи</Button>
-                    <Button color="inherit" component={Link} href="/admin/companies">Компании</Button>
-                  </>
-                )}
-              </>
-            )}
+        {/* Нав-линки показываем только на внутренних страницах */}
+        {!isPublic && (
+          <Box sx={{ display: 'flex', gap: 1, flexGrow: 1, flexWrap: 'wrap' }}>
+            {items.map((item) => (
+              <Button
+                key={item.href}
+                component={Link}
+                href={item.href}
+                color={isActive(item.href) ? 'primary' : 'inherit'}
+                variant={isActive(item.href) ? 'contained' : 'text'}
+                sx={{ borderRadius: 10 }}
+              >
+                {item.label}
+              </Button>
+            ))}
           </Box>
         )}
+
+        {/* Правая часть: Вход на публичных, Выход на внутренних */}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {isPublic ? (
+            pathname === '/login' ? null : (
+              <Button variant="contained" color="primary" component={Link} href="/login">
+                Вход
+              </Button>
+            )
+          ) : (
+            <Button onClick={handleLogout}>Выйти</Button>
+          )}
+        </Box>
       </Toolbar>
     </AppBar>
   )

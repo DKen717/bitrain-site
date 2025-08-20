@@ -1,4 +1,4 @@
-// pages/index.js
+// pages/index.jsx
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import Head from 'next/head'
@@ -26,28 +26,11 @@ import TimelineIcon from '@mui/icons-material/Timeline'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import { supabase } from '../src/supabaseClient'
 
-// Тексты/иконки
 const features = [
-  {
-    icon: BarChartIcon,
-    title: 'Аналитика',
-    description: 'Комплексные отчёты и визуализация по парку вагонов и операциям'
-  },
-  {
-    icon: PlaceIcon,
-    title: 'Онлайн-дислокация',
-    description: 'Мониторинг расположения вагонов с минимальной задержкой'
-  },
-  {
-    icon: FlashOnIcon,
-    title: 'Автоматизация',
-    description: 'Сценарии и процессы для ускорения ежедневной работы'
-  },
-  {
-    icon: SecurityIcon,
-    title: 'Безопасность',
-    description: 'RLS, разграничение доступа и защита ваших данных'
-  }
+  { icon: BarChartIcon, title: 'Аналитика', description: 'Комплексные отчёты и визуализация по парку вагонов и операциям' },
+  { icon: PlaceIcon, title: 'Онлайн-дислокация', description: 'Мониторинг расположения вагонов с минимальной задержкой' },
+  { icon: FlashOnIcon, title: 'Автоматизация', description: 'Сценарии и процессы для ускорения ежедневной работы' },
+  { icon: SecurityIcon, title: 'Безопасность', description: 'RLS, разграничение доступа и защита ваших данных' }
 ]
 
 const stats = [
@@ -57,7 +40,7 @@ const stats = [
   { label: 'Доступность', value: '99,9%', icon: TrendingUpIcon }
 ]
 
-// full-bleed секция (ломаемся из глобального Container в _app.js)
+// full-bleed секции (обход общего Container в _app.js)
 const fullBleedSX = {
   position: 'relative',
   left: '50%',
@@ -83,8 +66,9 @@ export default function Home() {
     return () => listener?.subscription?.unsubscribe()
   }, [])
 
+  // Оставил твой редирект на /home (если у тебя уже есть /dashboard — поменяй здесь)
   useEffect(() => {
-    if (session) router.replace('/dashboard') // если у тебя пока /home — поменяй здесь обратно
+    if (session) router.replace('/home')
   }, [session, router])
 
   return (
@@ -94,8 +78,175 @@ export default function Home() {
         <meta name="description" content="BI Train — аналитика и мониторинг парка вагонов: дислокация, отчёты, KPI." />
       </Head>
 
-      {/* HERO (full-bleed + мягкий градиент) */}
+      {/* HERO */}
       <Box
         component="section"
         sx={(t) => ({
           ...fullBleedSX,
+          py: { xs: 10, md: 14 },
+          background: `linear-gradient(135deg,
+            ${alpha(t.palette.primary.main, 0.06)},
+            ${alpha(t.palette.primary.main, 0.12)}
+          )`
+        })}
+      >
+        <Container maxWidth="lg">
+          <Box textAlign="center">
+            <Typography variant="h2" sx={{ fontWeight: 800, mb: 2 }}>
+              Платформа <Box component="span" sx={{ color: 'primary.main' }}>BI Train</Box>
+            </Typography>
+            <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 900, mx: 'auto', mb: 4 }}>
+              Аналитика и мониторинг железнодорожных перевозок: парк вагонов, дислокация, операции и KPI — в одном окне.
+            </Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
+              <Button size="large" variant="contained" component={Link} href="/login" sx={{ px: 4, py: 1.5 }}>
+                Войти
+              </Button>
+              <Button size="large" variant="outlined" component={Link} href="#features" sx={{ px: 4, py: 1.5 }}>
+                Узнать больше
+              </Button>
+            </Stack>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* СТАТИСТИКА */}
+      <Box component="section" sx={{ py: 8, bgcolor: 'background.paper' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={3}>
+            {stats.map((s, i) => {
+              const Icon = s.icon
+              return (
+                <Grid key={i} item xs={6} md={3}>
+                  <Card variant="outlined" sx={{ textAlign: 'center', height: '100%' }}>
+                    <CardHeader
+                      title={s.label}
+                      titleTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+                      avatar={
+                        <Box
+                          aria-hidden
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 2,
+                            bgcolor: 'primary.main',
+                            opacity: 0.12,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Icon sx={{ color: 'primary.main' }} />
+                        </Box>
+                      }
+                    />
+                    <Divider />
+                    <CardContent>
+                      <Typography variant="h4" fontWeight={800}>{s.value}</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )
+            })}
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* ФИЧИ */}
+      <Box id="features" component="section" sx={{ py: { xs: 10, md: 12 } }}>
+        <Container maxWidth="lg">
+          <Box textAlign="center" mb={6}>
+            <Typography variant="h4" fontWeight={800} gutterBottom>
+              Возможности
+            </Typography>
+            <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 800, mx: 'auto' }}>
+              Удобные инструменты для управления парком и принятия решений на основе данных
+            </Typography>
+          </Box>
+
+          <Grid container spacing={3}>
+            {features.map((f, i) => {
+              const Icon = f.icon
+              return (
+                <Grid key={i} item xs={12} sm={6} md={3}>
+                  <Card
+                    variant="outlined"
+                    sx={{
+                      height: '100%',
+                      textAlign: 'center',
+                      transition: 'box-shadow .2s, transform .2s',
+                      '&:hover': { boxShadow: 6, transform: 'translateY(-2px)' }
+                    }}
+                  >
+                    <CardHeader
+                      title={f.title}
+                      titleTypographyProps={{ variant: 'h6' }}
+                      avatar={
+                        <Box
+                          aria-hidden
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 2,
+                            bgcolor: 'primary.main',
+                            opacity: 0.12,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mx: 1
+                          }}
+                        >
+                          <Icon sx={{ color: 'primary.main' }} />
+                        </Box>
+                      }
+                    />
+                    <CardContent>
+                      <Typography color="text.secondary">{f.description}</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )
+            })}
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* CTA */}
+      <Box
+        component="section"
+        sx={(t) => ({
+          ...fullBleedSX,
+          py: { xs: 10, md: 12 },
+          bgcolor: t.palette.primary.main,
+          color: t.palette.primary.contrastText
+        })}
+      >
+        <Container maxWidth="md">
+          <Box textAlign="center">
+            <Typography variant="h4" fontWeight={800} gutterBottom>
+              Готовы оптимизировать работу?
+            </Typography>
+            <Typography variant="h6" sx={{ opacity: 0.9, mb: 3 }}>
+              Присоединяйтесь к платформе BI Train.
+            </Typography>
+            <Button
+              size="large"
+              variant="contained"
+              component={Link}
+              href="/login"
+              sx={{
+                px: 4,
+                py: 1.5,
+                bgcolor: 'common.white',
+                color: 'primary.main',
+                '&:hover': { bgcolor: alpha('#FFFFFF', 0.9) }
+              }}
+            >
+              Войти
+            </Button>
+          </Box>
+        </Container>
+      </Box>
+    </Box>
+  )
+}

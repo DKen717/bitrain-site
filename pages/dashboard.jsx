@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import {
   Box, Grid, Card, CardContent, Typography, Alert, CircularProgress,
-  Table, TableHead, TableRow, TableCell, TableBody, Stack, Divider
+  Table, TableHead, TableRow, TableCell, TableBody, Stack, Divider,
+  Chip, Button
 } from '@mui/material'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
@@ -12,14 +13,10 @@ import dynamic from 'next/dynamic'
 import AppLayout from '../components/AppLayout'
 import { supabase } from '../src/supabaseClient'
 
-// Надёжный Recharts: импорт внутри компонента + ssr: false
+// ——— Надёжный Recharts: импорт внутри компонента, ssr: false
 const TenantsChart = dynamic(() =>
-  Promise.resolve(function TenantsChartImpl({ width, height, data }) {
-    const { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } = require('recharts')
-    const BarRectShape = ({ x, y, width: w, height: h }) => {
-      if (!w || !h || w <= 0 || h <= 0) return null
-      return <rect x={x} y={y} width={w} height={h} fill="hsl(var(--chart-primary))" />
-    }
+  Promise.resolve(function TenantsChartImpl({ width, height, data, activeTenant, onPickTenant }) {
+    const { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } = require('recharts')
     return (
       <BarChart width={width} height={height} data={data} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
         <CartesianGrid stroke="hsl(var(--table-border))" strokeDasharray="3 3" />
@@ -33,7 +30,16 @@ const TenantsChart = dynamic(() =>
         />
         <YAxis allowDecimals={false} domain={[0, 'dataMax']} tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }} />
         <Tooltip />
-        <Bar dataKey="count" barSize={28} isAnimationActive={false} shape={<BarRectShape />} />
+        <Bar dataKey="count" barSize={28} isAnimationActive={false}>
+          {data.map((d) => (
+            <Cell
+              key={d.name}
+              cursor="pointer"
+              onClick={() => onPickTenant?.(d.name)}
+              fill={activeTenant === d.name ? 'hsl(var(--chart-primary))' : 'hsl(var(--chart-accent))'}
+            />
+          ))}
+        </Bar>
       </BarChart>
     )
   }), { ssr: false }
@@ -69,10 +75,13 @@ export default function DashboardPage() {
   const [latestTimeRaw, setLatestTimeRaw] = useState('')   // как в БД (HH:MM[:SS])
   const [latestTimeDisp, setLatestTimeDisp] = useState('') // HH:MM для подписи
 
-  const [counts, setCounts] = useState({ total: 0, working: 0, notWorking: 0 })
+  // данные
   const [rowsSlice, setRowsSlice] = useState([])
   const [loading,   setLoading]   = useState(false)
   const [errorText, setErrorText] = useState('')
+
+  // интерактивные фильтры
+  const [active, setActive] = useState({ working: '', tenant: '' })
 
   const [chartRef, chartWidth] = useContainerWidth()
 
@@ -111,7 +120,7 @@ export default function DashboardPage() {
   useEffect(() => {
     let canceled = false
     ;(async () => {
-      if (!latestTimeRaw) { setCounts({ total: 0, working: 0, notWorking: 0 }); setRowsSlice([]); return }
+      if (!latestTimeRaw) { setRowsSlice([]); return }
       setLoading(true); setErrorText('')
       try {
         const d = selectedDate.format('YYYY-MM-DD')
@@ -122,19 +131,9 @@ export default function DashboardPage() {
           .eq('vremya_otcheta', latestTimeRaw)
 
         if (error) throw error
-
-        const rows = data || []
-        const working = rows.filter(r => r.rabochij_nerabochij === 'Рабочий').length
-        const notWorking = rows.filter(r => r.rabochij_nerabochij === 'Нерабочий').length
-        const total = rows.length
-
-        if (!canceled) { setCounts({ total, working, notWorking }); setRowsSlice(rows) }
+        if (!canceled) setRowsSlice(data || [])
       } catch (e) {
-        if (!canceled) {
-          setCounts({ total: 0, working: 0, notWorking: 0 })
-          setRowsSlice([])
-          setErrorText(e.message || 'Ошибка загрузки данных')
-        }
+        if (!canceled) { setRowsSlice([]); setErrorText(e.message || 'Ошибка загрузки данных') }
       } finally {
         if (!canceled) setLoading(false)
       }
@@ -142,10 +141,30 @@ export default function DashboardPage() {
     return () => { canceled = true }
   }, [selectedDate, latestTimeRaw])
 
-  // 3) агрегат по арендаторам (топ-15)
+  // 3) применяем фильтры
+  const filteredRows = useMemo(() => {
+    return (rowsSlice || []).filter(r => {
+      if (active.working && r.rabochij_nerabochij !== active.working) return false
+      if (active.tenant) {
+        const t = (r.arendator && String(r.arendator).trim()) || 'Без арендатора'
+        if (t !== active.tenant) return false
+      }
+      return true
+    })
+  }, [rowsSlice, active])
+
+  // 4) KPI на основе ОТФИЛЬТРОВАННЫХ строк
+  const kpi = useMemo(() => {
+    const total = filteredRows.length
+    const working = filteredRows.filter(r => r.rabochij_nerabochij === 'Рабочий').length
+    const notWorking = filteredRows.filter(r => r.rabochij_nerabochij === 'Нерабочий').length
+    return { total, working, notWorking }
+  }, [filteredRows])
+
+  // 5) агрегат по арендаторам (топ-15) — тоже после фильтра
   const byTenant = useMemo(() => {
     const map = new Map()
-    rowsSlice.forEach(r => {
+    filteredRows.forEach(r => {
       const k = (r.arendator && String(r.arendator).trim()) || 'Без арендатора'
       map.set(k, (map.get(k) || 0) + 1)
     })
@@ -153,11 +172,11 @@ export default function DashboardPage() {
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 15)
-  }, [rowsSlice])
+  }, [filteredRows])
 
-  // 4) топ-10 без операций
+  // 6) топы — после фильтра
   const topNoOps = useMemo(() => {
-    return rowsSlice
+    return filteredRows
       .map(r => ({
         wagon:  r.nomer_vagona ?? '',
         tenant: r.arendator ?? '',
@@ -166,11 +185,10 @@ export default function DashboardPage() {
       .filter(x => x.wagon && Number.isFinite(x.days) && x.days > 0)
       .sort((a, b) => b.days - a.days)
       .slice(0, 10)
-  }, [rowsSlice])
+  }, [filteredRows])
 
-  // 5) топ-10 простоя на станции
   const topDwell = useMemo(() => {
-    return rowsSlice
+    return filteredRows
       .map(r => ({
         wagon:   r.nomer_vagona ?? '',
         station: r.stanciya_operacii ?? '',
@@ -179,7 +197,7 @@ export default function DashboardPage() {
       .filter(x => x.wagon && x.station && Number.isFinite(x.days) && x.days > 0)
       .sort((a, b) => b.days - a.days)
       .slice(0, 10)
-  }, [rowsSlice])
+  }, [filteredRows])
 
   const subtitle = useMemo(() => {
     const d = selectedDate.format('DD.MM.YYYY')
@@ -187,10 +205,40 @@ export default function DashboardPage() {
     return `Срез на ${d} ${t}`
   }, [selectedDate, latestTimeDisp])
 
+  // ——— helpers
+  const toggleWorking = (value) =>
+    setActive(prev => ({ ...prev, working: prev.working === value ? '' : value }))
+
+  const pickTenant = (name) =>
+    setActive(prev => ({ ...prev, tenant: prev.tenant === name ? '' : name }))
+
+  const clearAll = () => setActive({ working: '', tenant: '' })
+
+  // стили активных карточек KPI
+  const activeCardSX = {
+    borderColor: 'primary.main',
+    boxShadow: '0 0 0 1px hsl(var(--border))',
+    bgcolor: 'hsl(var(--secondary))',
+    cursor: 'pointer'
+  }
+
   return (
     <AppLayout collapsedDefault>
       <Typography variant="h4" sx={{ fontWeight: 800 }} gutterBottom>Дэшборд</Typography>
       <Typography variant="body2" sx={{ mb: 2, opacity: 0.7 }}>{subtitle}</Typography>
+
+      {/* Фильтры (чипы) */}
+      {(active.working || active.tenant) && (
+        <Stack direction="row" spacing={1} sx={{ mb: 2 }} alignItems="center">
+          {active.working && (
+            <Chip label={`Статус: ${active.working}`} onDelete={() => setActive(s => ({ ...s, working: '' }))} />
+          )}
+          {active.tenant && (
+            <Chip label={`Арендатор: ${active.tenant}`} onDelete={() => setActive(s => ({ ...s, tenant: '' }))} />
+          )}
+          <Button size="small" onClick={clearAll}>Сбросить всё</Button>
+        </Stack>
+      )}
 
       {/* Дата */}
       <Box sx={{ maxWidth: 360, mb: 2 }}>
@@ -206,25 +254,40 @@ export default function DashboardPage() {
 
       {errorText && <Alert severity="error" sx={{ mb: 2 }}>{errorText}</Alert>}
 
-      {/* KPI */}
+      {/* KPI — кликабельные */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} md={4}>
-          <Card><CardContent>
-            <Typography variant="subtitle2">Всего вагонов</Typography>
-            <Typography variant="h3">{loading ? '…' : counts.total}</Typography>
-          </CardContent></Card>
+          <Card
+            onClick={() => setActive(s => ({ ...s, working: '' }))} // «Всего» снимает фильтр по статусу
+            sx={{ cursor: 'pointer', ...(active.working === '' ? activeCardSX : {}) }}
+          >
+            <CardContent>
+              <Typography variant="subtitle2">Всего вагонов</Typography>
+              <Typography variant="h3">{loading ? '…' : kpi.total}</Typography>
+            </CardContent>
+          </Card>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Card><CardContent>
-            <Typography variant="subtitle2">Рабочие</Typography>
-            <Typography variant="h3">{loading ? '…' : counts.working}</Typography>
-          </CardContent></Card>
+          <Card
+            onClick={() => toggleWorking('Рабочий')}
+            sx={{ cursor: 'pointer', ...(active.working === 'Рабочий' ? activeCardSX : {}) }}
+          >
+            <CardContent>
+              <Typography variant="subtitle2">Рабочие</Typography>
+              <Typography variant="h3">{loading ? '…' : kpi.working}</Typography>
+            </CardContent>
+          </Card>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Card><CardContent>
-            <Typography variant="subtitle2">Нерабочие</Typography>
-            <Typography variant="h3">{loading ? '…' : counts.notWorking}</Typography>
-          </CardContent></Card>
+          <Card
+            onClick={() => toggleWorking('Нерабочий')}
+            sx={{ cursor: 'pointer', ...(active.working === 'Нерабочий' ? activeCardSX : {}) }}
+          >
+            <CardContent>
+              <Typography variant="subtitle2">Нерабочие</Typography>
+              <Typography variant="h3">{loading ? '…' : kpi.notWorking}</Typography>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
 
@@ -232,16 +295,22 @@ export default function DashboardPage() {
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>Вагоны по арендаторам (топ-15)</Typography>
-        <Box ref={chartRef} sx={{ width: '100%', minWidth: 320 }}>
-          {chartWidth > 0 && byTenant.length > 0 ? (
-            <TenantsChart width={chartWidth} height={CHART_HEIGHT} data={byTenant} />
-          ) : (
-            <Typography color="text.secondary">Нет данных для отображения.</Typography>
-          )}
-        </Box>
-        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-          Позиции: {byTenant.length} · контейнер: {chartWidth}px
-        </Typography>
+          <Box ref={chartRef} sx={{ width: '100%', minWidth: 320 }}>
+            {chartWidth > 0 && byTenant.length > 0 ? (
+              <TenantsChart
+                width={chartWidth}
+                height={CHART_HEIGHT}
+                data={byTenant}
+                activeTenant={active.tenant}
+                onPickTenant={pickTenant}
+              />
+            ) : (
+              <Typography color="text.secondary">Нет данных для отображения.</Typography>
+            )}
+          </Box>
+          <Typography variant="caption" sx={{ opacity: 0.7 }}>
+            Позиции: {byTenant.length} · контейнер: {chartWidth}px
+          </Typography>
         </CardContent>
       </Card>
 
@@ -266,7 +335,13 @@ export default function DashboardPage() {
                   </TableHead>
                   <TableBody>
                     {topNoOps.map((r, i) => (
-                      <TableRow key={i} hover>
+                      <TableRow
+                        key={i}
+                        hover
+                        sx={{ cursor: r.tenant ? 'pointer' : 'default' }}
+                        onClick={() => r.tenant && pickTenant(r.tenant)}
+                        title={r.tenant ? `Фильтровать по арендатору: ${r.tenant}` : ''}
+                      >
                         <TableCell>{r.wagon}</TableCell>
                         <TableCell>{r.tenant || '—'}</TableCell>
                         <TableCell align="right">{r.days}</TableCell>

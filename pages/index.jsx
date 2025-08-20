@@ -27,35 +27,35 @@ import { supabase } from '../src/supabaseClient'
 const features = [
   {
     icon: BarChartIcon,
-    title: 'Advanced Analytics',
+    title: 'Аналитика',
     description:
-      'Comprehensive reporting and data visualization for railway freight operations'
+      'Комплексная аналитика парка вагонов и визуализация данных'
   },
   {
     icon: PlaceIcon,
-    title: 'Real‑time Tracking',
+    title: 'В реальном времени',
     description:
-      'Monitor wagon locations and movements across your entire fleet'
+      'Мониторинг дислокации вагонов и операции с минимальной задержкой'
   },
   {
     icon: FlashOnIcon,
-    title: 'Process Automation',
+    title: 'Автоматизация процессов',
     description:
-      'Streamline operations with automated reporting and alerts'
+      'Автоматизация процессов управления парка вагонов'
   },
   {
     icon: SecurityIcon,
-    title: 'Secure Platform',
+    title: 'Безопасность',
     description:
-      'Enterprise‑grade security with role‑based access controls'
+      'Безопасность за сохранность данных'
   }
 ]
 
 const stats = [
-  { label: 'Active Wagons', value: '2,847', icon: TrainIcon },
-  { label: 'Partner Networks', value: '156', icon: GroupsIcon },
-  { label: 'Daily Operations', value: '1,203', icon: TimelineIcon },
-  { label: 'Uptime', value: '99.9%', icon: TrendingUpIcon }
+  { label: 'Активные вагоны', value: '2,847', icon: TrainIcon },
+  { label: 'Партнеры', value: '156', icon: GroupsIcon },
+  { label: 'Ежедневные операции', value: '1,203', icon: TimelineIcon },
+  { label: 'Доступность', value: '99.9%', icon: TrendingUpIcon }
 ]
 
 export default function Home() {
@@ -99,18 +99,18 @@ export default function Home() {
             >
               Railway Freight
               <Box component="span" sx={{ color: 'primary.main', display: 'block' }}>
-                Analytics Platform
+                BI Train
               </Box>
             </Typography>
             <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 900, mx: 'auto', mb: 4 }}>
-              Comprehensive business intelligence solution for railway freight operations. Track, analyze, and optimize your fleet performance with real‑time data and insights.
+              Комплексная аналитическая платформа, для управления парка вагонов, управление и мониторингом.
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
               <Button size="large" variant="contained" component={Link} href="/login" sx={{ px: 4, py: 1.5 }}>
-                Login to System
+                Авторизация
               </Button>
               <Button size="large" variant="outlined" component={Link} href="#features" sx={{ px: 4, py: 1.5 }}>
-                Learn More
+                Узнать больше
               </Button>
             </Stack>
           </Box>
@@ -161,10 +161,10 @@ export default function Home() {
         <Container maxWidth="lg">
           <Box textAlign="center" mb={6}>
             <Typography variant="h4" fontWeight={800} gutterBottom>
-              Key Benefits
+              Преимущества
             </Typography>
             <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 800, mx: 'auto' }}>
-              Powerful tools designed specifically for railway freight operations management
+              Удобный инструмент управления и мониторинга
             </Typography>
           </Box>
 
@@ -209,13 +209,13 @@ export default function Home() {
         <Container maxWidth="md">
           <Box textAlign="center">
             <Typography variant="h4" fontWeight={800} gutterBottom>
-              Ready to Optimize Your Operations?
+              Готовы оптимизировать работу?
             </Typography>
             <Typography variant="h6" sx={{ opacity: 0.9, mb: 3 }}>
-              Join leading railway companies using BI Train for smarter freight management
+              Присоединяйся к платформе BI Train
             </Typography>
             <Button size="large" variant="contained" color="secondary" component={Link} href="/dashboard" sx={{ px: 4, py: 1.5 }}>
-              Login to Dashboard
+              Авторизация
             </Button>
           </Box>
         </Container>

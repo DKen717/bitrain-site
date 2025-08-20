@@ -22,13 +22,13 @@ const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid
 
 const CHART_HEIGHT = 320
 
-// Рисуем столбики как <rect> (устойчиво к CSS-ресетам)
+// Рисуем столбики как <rect>
 function BarRectShape({ x, y, width, height, fill }) {
   if (!width || !height || width <= 0 || height <= 0) return null
   return <rect x={x} y={y} width={width} height={height} fill={fill || 'hsl(var(--chart-primary))'} />
 }
 
-// Измеряем ширину контейнера (для Recharts)
+// Ширина контейнера для Recharts
 function useContainerWidth() {
   const ref = useRef(null)
   const [width, setWidth] = useState(0)
@@ -55,24 +55,25 @@ function useContainerWidth() {
 
 export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState(dayjs())
-  const [latestTime, setLatestTime] = useState('') // HH:mm:ss
+
+  // фикс времени: raw — как в БД, disp — для UI
+  const [latestTimeRaw, setLatestTimeRaw] = useState('')   // 'HH:MM' ИЛИ 'HH:MM:SS' — ровно как в БД
+  const [latestTimeDisp, setLatestTimeDisp] = useState('') // 'HH:MM' для подписи
+
   const [counts, setCounts] = useState({ total: 0, working: 0, notWorking: 0 })
-  const [rowsSlice, setRowsSlice] = useState([])
+  const [rowsSlice, setRowsSlice] = useState([]) // срез всех строк на дату+время
   const [loading, setLoading] = useState(false)
   const [errorText, setErrorText] = useState('')
 
-  const [topNoOps, setTopNoOps] = useState([])
-  const [topDwell, setTopDwell] = useState([])
-  const [topLoading, setTopLoading] = useState(false)
-
   const [chartRef, chartWidth] = useContainerWidth()
 
-  // 1) Последнее время за дату
+  // 1) Находим последнее время за выбранную дату (и храним raw + display)
   useEffect(() => {
     let canceled = false
     ;(async () => {
       setErrorText('')
-      setLatestTime('')
+      setLatestTimeRaw('')
+      setLatestTimeDisp('')
       try {
         const d = selectedDate.format('YYYY-MM-DD')
         const { data, error } = await supabase
@@ -83,13 +84,19 @@ export default function DashboardPage() {
 
         if (error) throw error
 
+        // строим пары {raw, norm} для корректной сортировки
         const times = [...new Set((data || [])
           .map(r => String(r.vremya_otcheta))
           .filter(Boolean)
-          .map(s => (s.length === 5 ? `${s}:00` : s)))]
-          .sort((a, b) => a.localeCompare(b))
+        )]
+          .map(raw => ({ raw, norm: raw.length === 5 ? `${raw}:00` : raw })) // нормализуем до HH:MM:SS
+          .sort((a, b) => a.norm.localeCompare(b.norm))
 
-        if (!canceled) setLatestTime(times.at(-1) || '')
+        const last = times.at(-1)
+        if (!canceled && last) {
+          setLatestTimeRaw(last.raw)                    // для запроса
+          setLatestTimeDisp(last.norm.slice(0, 5))      // для подписи
+        }
       } catch (e) {
         if (!canceled) setErrorText(e.message || 'Ошибка загрузки времени')
       }
@@ -97,19 +104,19 @@ export default function DashboardPage() {
     return () => { canceled = true }
   }, [selectedDate])
 
-  // 2) KPI и массив для агрегации
+  // 2) Грузим срез данных на дату+время, считаем KPI
   useEffect(() => {
     let canceled = false
     ;(async () => {
-      if (!latestTime) { setCounts({ total: 0, working: 0, notWorking: 0 }); setRowsSlice([]); return }
+      if (!latestTimeRaw) { setCounts({ total: 0, working: 0, notWorking: 0 }); setRowsSlice([]); return }
       setLoading(true); setErrorText('')
       try {
         const d = selectedDate.format('YYYY-MM-DD')
         const { data, error } = await supabase
           .from('Dislocation_daily')
-          .select('rabochij_nerabochij, arendator')
+          .select('*') // берём все — чтобы найти подходящие поля для «топов» без view
           .eq('data_otcheta', d)
-          .eq('vremya_otcheta', latestTime)
+          .eq('vremya_otcheta', latestTimeRaw)
 
         if (error) throw error
 
@@ -133,63 +140,13 @@ export default function DashboardPage() {
       }
     })()
     return () => { canceled = true }
-  }, [selectedDate, latestTime])
+  }, [selectedDate, latestTimeRaw])
 
-  // 3) Топ-10 списки через вьюхи (если нет — будут пустые)
-  useEffect(() => {
-    let canceled = false
-    ;(async () => {
-      setTopLoading(true)
-      try {
-        // Топ вагонов без операций
-        let noOps = []
-        try {
-          const { data, error } = await supabase
-            .from('vw_top_no_ops')
-            .select('*')
-            .order('days_no_ops', { ascending: false })
-            .limit(10)
-          if (error) throw error
-          noOps = (data || []).map(r => ({
-            wagon: r.wagon ?? r.vagon ?? r.wagon_no ?? r.vagon_no ?? '',
-            tenant: r.tenant ?? r.arendator ?? '',
-            days: Number(r.days_no_ops ?? r.days ?? r.idle_days ?? 0)
-          }))
-        } catch {
-          noOps = []
-        }
-
-        // Топ простоя на станции
-        let dwell = []
-        try {
-          const { data, error } = await supabase
-            .from('vw_top_station_dwell')
-            .select('*')
-            .order('dwell_days', { ascending: false })
-            .limit(10)
-          if (error) throw error
-          dwell = (data || []).map(r => ({
-            wagon: r.wagon ?? r.vagon ?? r.wagon_no ?? r.vagon_no ?? '',
-            station: r.station ?? r.stantziya ?? r.stantciya ?? r.station_name ?? '',
-            days: Number(r.dwell_days ?? r.days ?? r.idle_days ?? 0)
-          }))
-        } catch {
-          dwell = []
-        }
-
-        if (!canceled) { setTopNoOps(noOps); setTopDwell(dwell) }
-      } finally {
-        if (!canceled) setTopLoading(false)
-      }
-    })()
-    return () => { canceled = true }
-  }, []) // грузим «топы» как текущее состояние; можно привязать к selectedDate, если представления поддерживают дату
-
-  // 4) агрегируем по арендаторам (топ-15)
+  // 3) Агрегация по арендаторам (топ-15)
   const byTenant = useMemo(() => {
     const map = new Map()
     rowsSlice.forEach(r => {
-      const k = r.arendator || 'Без арендатора'
+      const k = r.arendator || r.tenant || 'Без арендатора'
       map.set(k, (map.get(k) || 0) + 1)
     })
     return Array.from(map.entries())
@@ -198,11 +155,60 @@ export default function DashboardPage() {
       .slice(0, 15)
   }, [rowsSlice])
 
+  // 4) Топ-10 вагонов без операций (из среза, без view)
+  // Пытаемся найти подходящее числовое поле в строке (любое из перечисленных)
+  const pickNoOpsDays = (r) => {
+    const candidates = ['days_no_ops', 'bez_operacii_dney', 'bez_operacij_dney', 'days_without_ops', 'idle_days']
+    for (const c of candidates) {
+      const v = Number(r?.[c])
+      if (!Number.isNaN(v)) return v
+    }
+    return 0
+  }
+
+  const topNoOps = useMemo(() => {
+    const list = rowsSlice
+      .map(r => ({
+        wagon: r.vagon_no || r.vagon || r.wagon_no || r.wagon || '',
+        tenant: r.arendator || r.tenant || '',
+        days: pickNoOpsDays(r)
+      }))
+      .filter(x => x.wagon && x.days > 0)
+      .sort((a, b) => b.days - a.days)
+      .slice(0, 10)
+    return list
+  }, [rowsSlice])
+
+  // 5) Топ-10 простоя на станции (из среза, без view)
+  const pickDwellDays = (r) => {
+    const candidates = ['prostoi_dney', 'dwell_days', 'idle_days_station', 'prostoi', 'prostoi_dni']
+    for (const c of candidates) {
+      const v = Number(r?.[c])
+      if (!Number.isNaN(v)) return v
+    }
+    return 0
+  }
+
+  const topDwell = useMemo(() => {
+    const list = rowsSlice
+      .map(r => ({
+        wagon: r.vagon_no || r.vagon || r.wagon_no || r.wagon || '',
+        station: r.stantziya || r.stantciya || r.station || r.station_name || '',
+        days: pickDwellDays(r)
+      }))
+      .filter(x => x.wagon && x.station && x.days > 0)
+      .sort((a, b) => b.days - a.days)
+      .slice(0, 10)
+    return list
+  }, [rowsSlice])
+
   const subtitle = useMemo(() => {
     const d = selectedDate.format('DD.MM.YYYY')
-    const t = latestTime ? latestTime.slice(0,5) : '—'
+    const t = latestTimeDisp || '—'
     return `Срез на ${d} ${t}`
-  }, [selectedDate, latestTime])
+  }, [selectedDate, latestTimeDisp])
+
+  const [chartRefEl, chartWidthPx] = [chartRef, chartWidth]
 
   return (
     <AppLayout collapsedDefault>
@@ -249,14 +255,14 @@ export default function DashboardPage() {
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>Вагоны по арендаторам (топ-15)</Typography>
-          <Box ref={chartRef} sx={{ width: '100%', minWidth: 320 }}>
-            {chartWidth > 0 && byTenant.length > 0 ? (
+          <Box ref={chartRefEl} sx={{ width: '100%', minWidth: 320 }}>
+            {chartWidthPx > 0 && byTenant.length > 0 ? (
               <BarChart
-                width={chartWidth}
+                width={chartWidthPx}
                 height={CHART_HEIGHT}
                 data={byTenant}
                 margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
-                key={`tenants-${latestTime}-${byTenant.length}-${chartWidth}`}
+                key={`tenants-${latestTimeRaw}-${byTenant.length}-${chartWidthPx}`}
               >
                 <CartesianGrid stroke="hsl(var(--table-border))" strokeDasharray="3 3" />
                 <XAxis
@@ -285,7 +291,7 @@ export default function DashboardPage() {
             )}
           </Box>
           <Typography variant="caption" sx={{ opacity: 0.7 }}>
-            Позиции: {byTenant.length} · контейнер: {chartWidth}px
+            Позиции: {byTenant.length} · контейнер: {chartWidthPx}px
           </Typography>
         </CardContent>
       </Card>
@@ -297,7 +303,7 @@ export default function DashboardPage() {
             <CardContent>
               <Stack direction="row" alignItems="center" justifyContent="space-between">
                 <Typography variant="h6">Топ-10 вагонов без операций</Typography>
-                {topLoading && <CircularProgress size={18} />}
+                {loading && <CircularProgress size={18} />}
               </Stack>
               <Divider sx={{ my: 1.5 }} />
               {topNoOps.length > 0 ? (
@@ -332,7 +338,7 @@ export default function DashboardPage() {
             <CardContent>
               <Stack direction="row" alignItems="center" justifyContent="space-between">
                 <Typography variant="h6">Топ-10 простоя на станции</Typography>
-                {topLoading && <CircularProgress size={18} />}
+                {loading && <CircularProgress size={18} />}
               </Stack>
               <Divider sx={{ my: 1.5 }} />
               {topDwell.length > 0 ? (

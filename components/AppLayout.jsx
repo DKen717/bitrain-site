@@ -1,11 +1,14 @@
 // components/AppLayout.jsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 import {
   Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText,
   Typography, Divider, Avatar, Tooltip, IconButton
 } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import MapIcon from '@mui/icons-material/Map'
 import AssessmentIcon from '@mui/icons-material/Assessment'
@@ -15,18 +18,19 @@ import TrainIcon from '@mui/icons-material/Train'
 import ContactsIcon from '@mui/icons-material/Contacts'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
-import Link from 'next/link'
 import { supabase } from '../src/supabaseClient'
 
 const drawerWidth = 260
+const collapsedWidth = 72
 
-export default function AppLayout({ children, withTopBar = false }) {
+export default function AppLayout({ children, withTopBar = false, collapsedDefault = false }) {
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [session, setSession] = useState(null)
   const [role, setRole] = useState(null)
   const [fullName, setFullName] = useState(null)
   const [email, setEmail] = useState(null)
+  const [collapsed, setCollapsed] = useState(collapsedDefault)
 
   // ---- auth + роль (users_custom с фоллбэком к profiles) ----
   useEffect(() => {
@@ -38,8 +42,11 @@ export default function AppLayout({ children, withTopBar = false }) {
 
       const u = sess.user
       setEmail(u.email || '')
-      // 1) users_custom по user_id (основной путь)
-      let roleVal = null, nameVal = null
+
+      let roleVal = null
+      let nameVal = null
+
+      // 1) users_custom по user_id
       try {
         const { data: uc } = await supabase
           .from('users_custom')
@@ -49,7 +56,7 @@ export default function AppLayout({ children, withTopBar = false }) {
         if (uc) { roleVal = uc.role; nameVal = uc.full_name || null }
       } catch {}
 
-      // 2) если нет — users_custom по email
+      // 2) users_custom по email
       if (!roleVal) {
         try {
           const { data: uc2 } = await supabase
@@ -61,7 +68,7 @@ export default function AppLayout({ children, withTopBar = false }) {
         } catch {}
       }
 
-      // 3) если всё ещё нет — profiles по user.id (на случай другой схемы)
+      // 3) profiles по id (если другая схема)
       if (!roleVal) {
         try {
           const { data: p } = await supabase
@@ -73,7 +80,6 @@ export default function AppLayout({ children, withTopBar = false }) {
         } catch {}
       }
 
-      // нормализация роли
       const normalizeRole = (r) => (r === 'companyadmin' ? 'company_admin' : r)
       setRole(normalizeRole(roleVal || 'user'))
       setFullName(nameVal)
@@ -93,65 +99,90 @@ export default function AppLayout({ children, withTopBar = false }) {
     { href: '/home', label: 'Главная', icon: <DashboardIcon /> },
     { href: '/dashboard', label: 'Дэшборд', icon: <DashboardIcon /> },
     { href: '/dislocation', label: 'Дислокация', icon: <MapIcon /> },
-    { href: '/counterparties', label: 'Контрагенты', icon: <MapIcon /> },
+    { href: '/counterparties', label: 'Контрагенты', icon: <ContactsIcon /> },
     { href: '/my-ps', label: 'Мой ПС', icon: <TrainIcon /> },
   ]
   const adminMenu = [
     { href: '/admin/users', label: 'Пользователи', icon: <PeopleIcon /> },
     { href: '/admin/companies', label: 'Компании', icon: <BusinessIcon /> },
+    { href: '/settings', label: 'Настройки', icon: <SettingsIcon /> },
   ]
   const items = isSuperadmin ? [...baseMenu, ...adminMenu] : baseMenu
 
   const isActive = (href) => router.pathname === href || router.pathname.startsWith(href + '/')
 
+  const renderItem = (item) => {
+    const Btn = (
+      <ListItemButton
+        key={item.href}
+        component={Link}
+        href={item.href}
+        selected={isActive(item.href)}
+        sx={{
+          borderRadius: 2, mb: 0.5,
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          px: collapsed ? 1.25 : 1.5,
+          '&.Mui-selected': {
+            bgcolor: 'primary.main', color: 'primary.contrastText',
+            '& .MuiListItemIcon-root': { color: 'primary.contrastText' }
+          }
+        }}
+        onClick={() => setMobileOpen(false)}
+      >
+        <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 1.5, justifyContent: 'center' }}>
+          {item.icon}
+        </ListItemIcon>
+        {!collapsed && <ListItemText primary={item.label} />}
+      </ListItemButton>
+    )
+    return collapsed
+      ? <Tooltip key={item.href} title={item.label} placement="right" arrow>{Btn}</Tooltip>
+      : Btn
+  }
+
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 2 }}>
+      {/* Header логотип + кнопка свёртки */}
+      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, justifyContent: collapsed ? 'center' : 'space-between' }}>
         <Typography
           variant="h6"
           component={Link}
           href="/"
-          sx={{ fontWeight: 800, letterSpacing: -0.3, color: 'inherit', textDecoration: 'none' }}
+          sx={{
+            fontWeight: 800, letterSpacing: -0.3, color: 'inherit', textDecoration: 'none',
+            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'
+          }}
         >
-          BI Train
+          {collapsed ? 'BI' : 'BI Train'}
         </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {fullName || email || 'Пользователь'}{role ? ` · ${role}` : ''}
-        </Typography>
+        {/* Кнопка сворачивания/разворачивания (только десктоп) */}
+        <IconButton size="small" onClick={() => setCollapsed((v) => !v)} sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
+          {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
+        </IconButton>
       </Box>
+
       <Divider />
+
       <List sx={{ px: 1, py: 1 }}>
-        {items.map((item) => (
-          <ListItemButton
-            key={item.href}
-            component={Link}
-            href={item.href}
-            selected={isActive(item.href)}
-            sx={{
-              borderRadius: 2, mb: 0.5,
-              '&.Mui-selected': {
-                bgcolor: 'primary.main', color: 'primary.contrastText',
-                '& .MuiListItemIcon-root': { color: 'primary.contrastText' }
-              }
-            }}
-            onClick={() => setMobileOpen(false)}
-          >
-            <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.label} />
-          </ListItemButton>
-        ))}
+        {items.map(renderItem)}
       </List>
+
       <Box sx={{ flexGrow: 1 }} />
       <Divider sx={{ mt: 1 }} />
+
+      {/* Нижняя панель (аватар + выход). Текст прячем в mini-режиме */}
       <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Avatar sx={{ width: 36, height: 36 }}>
           {(email || 'U')[0].toUpperCase()}
         </Avatar>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="body2" noWrap>{fullName || email || 'Пользователь'}</Typography>
-          <Typography variant="caption" color="text.secondary" noWrap>{role || 'user'}</Typography>
-        </Box>
-        <Box sx={{ flexGrow: 1 }} />
+        {!collapsed && (
+          <Box sx={{ minWidth: 0 }}>
+            {/* ты писал, что сам будешь выводить информацию на страницах — тут ничего лишнего не показываем */}
+            <Typography variant="body2" noWrap>{fullName || email || 'Пользователь'}</Typography>
+            <Typography variant="caption" color="text.secondary" noWrap>{role || 'user'}</Typography>
+          </Box>
+        )}
+        <Box sx={{ flexGrow: 1, display: collapsed ? 'none' : 'block' }} />
         <Tooltip title="Выйти">
           <IconButton
             size="small"
@@ -166,7 +197,7 @@ export default function AppLayout({ children, withTopBar = false }) {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* плавающая кнопка-гамбургер для мобилки (вместо верхней панели) */}
+      {/* плавающая кнопка-гамбургер для мобилки */}
       {!withTopBar && (
         <IconButton
           onClick={() => setMobileOpen(true)}
@@ -186,7 +217,14 @@ export default function AppLayout({ children, withTopBar = false }) {
       )}
 
       {/* Левый сайдбар */}
-      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }} aria-label="sidebar">
+      <Box
+        component="nav"
+        sx={{
+          width: { md: collapsed ? collapsedWidth : drawerWidth },
+          flexShrink: { md: 0 }
+        }}
+        aria-label="sidebar"
+      >
         {/* Мобильный */}
         <Drawer
           variant="temporary"
@@ -205,7 +243,10 @@ export default function AppLayout({ children, withTopBar = false }) {
           variant="permanent"
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box' }
+            '& .MuiDrawer-paper': {
+              width: collapsed ? collapsedWidth : drawerWidth,
+              boxSizing: 'border-box'
+            }
           }}
           open
         >

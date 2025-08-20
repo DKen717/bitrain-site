@@ -1,5 +1,5 @@
 // pages/_app.js
-import '../styles/bi-palette.css'
+import '../styles/bi-palette.css' // ⬅️ палитра (CSS-переменные)
 import { CssBaseline, Container } from '@mui/material'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
@@ -14,11 +14,11 @@ const theme = createTheme({
     background: { default: 'hsl(var(--background))', paper: 'hsl(var(--card))' },
     text: { primary: 'hsl(var(--foreground))', secondary: 'hsl(var(--muted-foreground))' },
     primary: { main: 'hsl(var(--primary))', contrastText: 'hsl(var(--primary-foreground))' },
-    secondary:{ main: 'hsl(var(--secondary))', contrastText: 'hsl(var(--secondary-foreground))' },
-    success:  { main: 'hsl(var(--success))' },
-    warning:  { main: 'hsl(var(--warning))' },
-    error:    { main: 'hsl(var(--destructive))' },
-    divider:  'hsl(var(--border))'
+    secondary: { main: 'hsl(var(--secondary))', contrastText: 'hsl(var(--secondary-foreground))' },
+    success: { main: 'hsl(var(--success))' },
+    warning: { main: 'hsl(var(--warning))' },
+    error:   { main: 'hsl(var(--destructive))' },
+    divider: 'hsl(var(--border))'
   },
   shape: { borderRadius: 12 },
   typography: {
@@ -29,28 +29,60 @@ const theme = createTheme({
     h3: { fontWeight: 700 }
   },
   components: {
-    MuiCard: { styleOverrides: { root: {
-      backgroundColor: 'hsl(var(--card))',
-      border: '1px solid hsl(var(--border))',
-      boxShadow: '0 6px 20px rgba(0,0,0,0.06)',
-      borderRadius: 'var(--radius)'
-    } } },
-    MuiAppBar: { styleOverrides: { root: {
-      background: 'hsl(var(--card))', color: 'hsl(var(--foreground))',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.04)'
-    } } },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          backgroundColor: 'hsl(var(--card))',
+          border: '1px solid hsl(var(--border))',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.06)',
+          borderRadius: 'var(--radius)'
+        }
+      }
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          background: 'hsl(var(--card))',
+          color: 'hsl(var(--foreground))',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.04)'
+        }
+      }
+    },
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {
         root: { textTransform: 'none', borderRadius: 12, fontWeight: 600, padding: '10px 16px' },
-        containedPrimary: { backgroundColor: 'hsl(var(--primary))', '&:hover': { backgroundColor: 'hsl(var(--primary-hover))' } }
+        containedPrimary: {
+          backgroundColor: 'hsl(var(--primary))',
+          '&:hover': { backgroundColor: 'hsl(var(--primary-hover))' }
+        }
+      },
+      // Глобальный пресет для «белых» кнопок с видимой рамкой:
+      // Используй на компоненте: variant="contained" color="inherit"
+      variants: [
+        {
+          props: { variant: 'contained', color: 'inherit' },
+          style: {
+            backgroundColor: 'hsl(var(--card))',
+            color: 'hsl(var(--foreground))',
+            boxShadow: 'inset 0 0 0 1px hsl(var(--border))',
+            '&:hover': {
+              backgroundColor: 'hsl(var(--secondary))',
+              boxShadow: 'inset 0 0 0 1px hsl(var(--border))'
+            }
+          }
+        }
+      ]
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: 'hsl(var(--sidebar-background))',
+          color: 'hsl(var(--sidebar-foreground))',
+          borderRight: '1px solid hsl(var(--sidebar-border))'
+        }
       }
     },
-    MuiDrawer: { styleOverrides: { paper: {
-      backgroundColor: 'hsl(var(--sidebar-background))',
-      color: 'hsl(var(--sidebar-foreground))',
-      borderRight: '1px solid hsl(var(--sidebar-border))'
-    } } },
     MuiTableHead: { styleOverrides: { root: { backgroundColor: 'hsl(var(--table-header))' } } },
     MuiTableRow: { styleOverrides: { root: { '&:hover': { backgroundColor: 'hsl(var(--table-hover))' } } } }
   }
@@ -75,6 +107,7 @@ export default function MyApp({ Component, pageProps }) {
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
       </Head>
 
+      {/* Глобальные фиксы для Recharts */}
       <style jsx global>{`
         svg.recharts-surface { overflow: visible !important; display: block !important; }
         .recharts-wrapper { overflow: visible !important; }

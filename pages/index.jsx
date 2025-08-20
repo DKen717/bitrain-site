@@ -129,8 +129,7 @@ export default function Home() {
                             width: 48,
                             height: 48,
                             borderRadius: 2,
-                            bgcolor: 'primary.main',
-                            opacity: 0.12,
+                            bgcolor: alpha(t.palette.primary.main, 0.12), // ← полупрозрачный фон
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
@@ -188,12 +187,10 @@ export default function Home() {
                             width: 48,
                             height: 48,
                             borderRadius: 2,
-                            bgcolor: 'primary.main',
-                            opacity: 0.12,
+                            bgcolor: alpha(t.palette.primary.main, 0.12), // ← полупрозрачный фон
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            mx: 1
+                            justifyContent: 'center'
                           }}
                         >
                           <Icon sx={{ color: 'primary.main' }} />

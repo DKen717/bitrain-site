@@ -135,7 +135,7 @@ export default function Home() {
                             justifyContent: 'center'
                           })}
                         >
-                          <Icon sx={{ color: 'primary.main' }} />
+                          <Icon sx={{ color: 'primary.main' }} fontSize="large" />
                         </Box>
                       }
                     />
@@ -193,7 +193,7 @@ export default function Home() {
                             justifyContent: 'center'
                           })}
                         >
-                          <Icon sx={{ color: 'primary.main' }} />
+                          <Icon sx={{ color: 'primary.main' }} fontSize="large" />
                         </Box>
                       }
                     />

@@ -1,114 +1,109 @@
+// pages/internal-home.jsx
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
-import { Box, Typography, Button, Grid, Alert, CircularProgress } from '@mui/material'
-import { supabase } from '../src/supabaseClient'
+import { Box, Typography, Button, Grid, Alert, CircularProgress, Card, CardContent } from '@mui/material'
 import Link from 'next/link'
+import { supabase } from '../src/supabaseClient'
+import AppLayout from '../components/AppLayout'
 
 export default function InternalHomePage() {
-  const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState(null)
-  const router = useRouter()
 
   useEffect(() => {
     let cancelled = false
-
-    const load = async () => {
+    ;(async () => {
       try {
-        const { data, error } = await supabase.auth.getUser()
+        // AppLayout уже перекинет на /login, если сессии нет
+        const { data, error } = await supabase.auth.getSession()
         if (error) throw error
+        const u = data?.session?.user
+        if (!u) return
 
-        const u = data?.user
-        if (!u) {
-          router.replace('/')
-          return
-        }
-
-        if (cancelled) return
-        setUser(u)
-
+        // Берём роль/компанию из вашей таблицы users_custom (по email)
         const { data: profileData, error: pErr } = await supabase
           .from('users_custom')
-          .select('role, company_id')
+          .select('role, company_id, full_name')
           .eq('email', u.email)
           .single()
 
         if (pErr) throw new Error(`Профиль не найден: ${pErr.message}`)
-        if (cancelled) return
-        setProfile(profileData)
+        if (!cancelled) setProfile(profileData)
       } catch (e) {
         if (!cancelled) setErrorMsg(e.message || 'Ошибка авторизации')
       } finally {
         if (!cancelled) setLoading(false)
       }
-    }
-
-    load()
-
-    // если сессия изменилась — реагируем
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) router.replace('/')
-    })
-
-    return () => {
-      cancelled = true
-      sub?.subscription?.unsubscribe?.()
-    }
-  }, [router])
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-    } catch (e) {
-      setErrorMsg(e.message || 'Не удалось выйти')
-    } finally {
-      router.replace('/')
-    }
+    try { await supabase.auth.signOut() } catch {}
   }
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h5" gutterBottom>
-        Добро пожаловать в систему
+    <AppLayout>
+      <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+        Добро пожаловать{profile?.full_name ? `, ${profile.full_name}` : ''}!
+        </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        {profile ? `Роль: ${profile.role}${profile.company_id ? ` · Компания ID: ${profile.company_id}` : ''}` : 'Загружаем профиль…'}
       </Typography>
 
       {loading && (
-        <Box sx={{ mt: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
+        <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
           <CircularProgress size={22} />
           <Typography color="text.secondary">Загружаем профиль…</Typography>
         </Box>
       )}
 
-      {!loading && errorMsg && (
-        <Alert severity="error" sx={{ mt: 2 }}>{errorMsg}</Alert>
-      )}
+      {!loading && errorMsg && <Alert severity="error" sx={{ mt: 2 }}>{errorMsg}</Alert>}
 
-      {!loading && profile && (
-        <Grid container spacing={2} sx={{ mt: 2 }}>
-          <Grid item>
-            <Button component={Link} href="/dashboard" variant="outlined">
-              📊 Дэшборд
-            </Button>
+      {!loading && !errorMsg && (
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" color="text.secondary">Перейти</Typography>
+                <Button fullWidth component={Link} href="/dashboard" variant="contained" sx={{ mt: 1 }}>
+                  📊 Дэшборд
+                </Button>
+              </CardContent>
+            </Card>
           </Grid>
-          <Grid item>
-            <Button component={Link} href="/dislocation" variant="outlined">
-              🚂 Дислокация
-            </Button>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" color="text.secondary">Перейти</Typography>
+                <Button fullWidth component={Link} href="/dislocation" variant="contained" sx={{ mt: 1 }}>
+                  🚂 Дислокация
+                </Button>
+              </CardContent>
+            </Card>
           </Grid>
 
-          {profile.role === 'superadmin' && (
+          {profile?.role === 'superadmin' && (
             <>
-              <Grid item>
-                <Button component={Link} href="/admin/users" variant="contained">
-                  👥 Пользователи
-                </Button>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">Администрирование</Typography>
+                    <Button fullWidth component={Link} href="/admin/users" variant="outlined" sx={{ mt: 1 }}>
+                      👥 Пользователи
+                    </Button>
+                  </CardContent>
+                </Card>
               </Grid>
-              <Grid item>
-                <Button component={Link} href="/admin/companies" variant="contained">
-                  🏢 Компании
-                </Button>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">Администрирование</Typography>
+                    <Button fullWidth component={Link} href="/admin/companies" variant="outlined" sx={{ mt: 1 }}>
+                      🏢 Компании
+                    </Button>
+                  </CardContent>
+                </Card>
               </Grid>
             </>
           )}
@@ -119,7 +114,10 @@ export default function InternalHomePage() {
         <Button color="error" onClick={handleLogout} disabled={loading}>
           Выйти
         </Button>
+        <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
+          (Иконка выхода есть и в сайдбаре)
+        </Typography>
       </Box>
-    </Box>
+    </AppLayout>
   )
 }

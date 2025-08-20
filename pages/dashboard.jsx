@@ -12,23 +12,42 @@ import dynamic from 'next/dynamic'
 import AppLayout from '../components/AppLayout'
 import { supabase } from '../src/supabaseClient'
 
-// Recharts (без SSR)
-const BarChart      = dynamic(() => import('recharts').then(m => m.BarChart),      { ssr: false })
-const Bar           = dynamic(() => import('recharts').then(m => m.Bar),           { ssr: false })
-const XAxis         = dynamic(() => import('recharts').then(m => m.XAxis),         { ssr: false })
-const YAxis         = dynamic(() => import('recharts').then(m => m.YAxis),         { ssr: false })
-const Tooltip       = dynamic(() => import('recharts').then(m => m.Tooltip),       { ssr: false })
-const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid), { ssr: false })
+// ✅ Надёжная обёртка Recharts: импорт внутри компонента, ssr: false
+const TenantsChart = dynamic(() =>
+  Promise.resolve(function TenantsChartImpl({ width, height, data }) {
+    const { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } = require('recharts')
+    const BarRectShape = (props) => {
+      const { x, y, width: w, height: h } = props
+      if (!w || !h || w <= 0 || h <= 0) return null
+      return <rect x={x} y={y} width={w} height={h} fill="hsl(var(--chart-primary))" />
+    }
+    return (
+      <BarChart width={width} height={height} data={data}
+        margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
+      >
+        <CartesianGrid stroke="hsl(var(--table-border))" strokeDasharray="3 3" />
+        <XAxis
+          dataKey="name"
+          angle={-20}
+          textAnchor="end"
+          height={60}
+          interval={0}
+          tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+        />
+        <YAxis
+          allowDecimals={false}
+          domain={[0, 'dataMax']}
+          tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+        />
+        <Tooltip />
+        <Bar dataKey="count" barSize={28} isAnimationActive={false} shape={<BarRectShape />} />
+      </BarChart>
+    )
+  }), { ssr: false }
+)
 
 const CHART_HEIGHT = 320
 
-// Рисуем столбики как <rect>
-function BarRectShape({ x, y, width, height, fill }) {
-  if (!width || !height || width <= 0 || height <= 0) return null
-  return <rect x={x} y={y} width={width} height={height} fill={fill || 'hsl(var(--chart-primary))'} />
-}
-
-// Ширина контейнера для Recharts
 function useContainerWidth() {
   const ref = useRef(null)
   const [width, setWidth] = useState(0)
@@ -56,24 +75,23 @@ function useContainerWidth() {
 export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState(dayjs())
 
-  // фикс времени: raw — как в БД, disp — для UI
-  const [latestTimeRaw, setLatestTimeRaw] = useState('')   // 'HH:MM' ИЛИ 'HH:MM:SS' — ровно как в БД
-  const [latestTimeDisp, setLatestTimeDisp] = useState('') // 'HH:MM' для подписи
+  // время среза: raw — как в БД, disp — 'HH:MM' для UI
+  const [latestTimeRaw, setLatestTimeRaw] = useState('')
+  const [latestTimeDisp, setLatestTimeDisp] = useState('')
 
   const [counts, setCounts] = useState({ total: 0, working: 0, notWorking: 0 })
-  const [rowsSlice, setRowsSlice] = useState([]) // срез всех строк на дату+время
-  const [loading, setLoading] = useState(false)
+  const [rowsSlice, setRowsSlice] = useState([])
+  const [loading,   setLoading]   = useState(false)
   const [errorText, setErrorText] = useState('')
 
   const [chartRef, chartWidth] = useContainerWidth()
 
-  // 1) Находим последнее время за выбранную дату (и храним raw + display)
+  // 1) Последнее время за дату
   useEffect(() => {
     let canceled = false
     ;(async () => {
       setErrorText('')
-      setLatestTimeRaw('')
-      setLatestTimeDisp('')
+      setLatestTimeRaw(''); setLatestTimeDisp('')
       try {
         const d = selectedDate.format('YYYY-MM-DD')
         const { data, error } = await supabase
@@ -84,18 +102,17 @@ export default function DashboardPage() {
 
         if (error) throw error
 
-        // строим пары {raw, norm} для корректной сортировки
         const times = [...new Set((data || [])
           .map(r => String(r.vremya_otcheta))
           .filter(Boolean)
         )]
-          .map(raw => ({ raw, norm: raw.length === 5 ? `${raw}:00` : raw })) // нормализуем до HH:MM:SS
-          .sort((a, b) => a.norm.localeCompare(b.norm))
+          .map(raw => ({ raw, norm: raw.length === 5 ? `${raw}:00` : raw }))
+          .sort((a,b) => a.norm.localeCompare(b.norm))
 
         const last = times.at(-1)
         if (!canceled && last) {
-          setLatestTimeRaw(last.raw)                    // для запроса
-          setLatestTimeDisp(last.norm.slice(0, 5))      // для подписи
+          setLatestTimeRaw(last.raw)
+          setLatestTimeDisp(last.norm.slice(0,5))
         }
       } catch (e) {
         if (!canceled) setErrorText(e.message || 'Ошибка загрузки времени')
@@ -104,7 +121,7 @@ export default function DashboardPage() {
     return () => { canceled = true }
   }, [selectedDate])
 
-  // 2) Грузим срез данных на дату+время, считаем KPI
+  // 2) Срез на дату+время
   useEffect(() => {
     let canceled = false
     ;(async () => {
@@ -114,7 +131,7 @@ export default function DashboardPage() {
         const d = selectedDate.format('YYYY-MM-DD')
         const { data, error } = await supabase
           .from('Dislocation_daily')
-          .select('*') // берём все — чтобы найти подходящие поля для «топов» без view
+          .select('*')
           .eq('data_otcheta', d)
           .eq('vremya_otcheta', latestTimeRaw)
 
@@ -125,16 +142,9 @@ export default function DashboardPage() {
         const notWorking = rows.filter(r => r.rabochij_nerabochij === 'Нерабочий').length
         const total = rows.length
 
-        if (!canceled) {
-          setCounts({ total, working, notWorking })
-          setRowsSlice(rows)
-        }
+        if (!canceled) { setCounts({ total, working, notWorking }); setRowsSlice(rows) }
       } catch (e) {
-        if (!canceled) {
-          setCounts({ total: 0, working: 0, notWorking: 0 })
-          setRowsSlice([])
-          setErrorText(e.message || 'Ошибка загрузки данных')
-        }
+        if (!canceled) { setCounts({ total: 0, working: 0, notWorking: 0 }); setRowsSlice([]); setErrorText(e.message || 'Ошибка загрузки данных') }
       } finally {
         if (!canceled) setLoading(false)
       }
@@ -155,52 +165,73 @@ export default function DashboardPage() {
       .slice(0, 15)
   }, [rowsSlice])
 
-  // 4) Топ-10 вагонов без операций (из среза, без view)
-  // Пытаемся найти подходящее числовое поле в строке (любое из перечисленных)
-  const pickNoOpsDays = (r) => {
-    const candidates = ['days_no_ops', 'bez_operacii_dney', 'bez_operacij_dney', 'days_without_ops', 'idle_days']
-    for (const c of candidates) {
-      const v = Number(r?.[c])
-      if (!Number.isNaN(v)) return v
+  // ---- детектор полей ----
+  const getNum = (v) => {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+  const pickFirstNumber = (row, keys) => {
+    for (const k of keys) {
+      const n = getNum(row?.[k])
+      if (n !== null) return n
     }
-    return 0
+    return null
+  }
+  const pickFirstDate = (row, keys) => {
+    for (const k of keys) {
+      const v = row?.[k]
+      if (!v) continue
+      const d = dayjs(v)
+      if (d.isValid()) return d
+    }
+    return null
   }
 
+  // 4) Топ-10 без операций: сначала пробуем числовые поля, иначе считаем от даты последней операции
   const topNoOps = useMemo(() => {
-    const list = rowsSlice
-      .map(r => ({
-        wagon: r.vagon_no || r.vagon || r.wagon_no || r.wagon || '',
-        tenant: r.arendator || r.tenant || '',
-        days: pickNoOpsDays(r)
-      }))
+    const numKeys = ['days_no_ops','bez_operacii_dney','bez_operacij_dney','days_without_ops','idle_days']
+    const dateKeys = ['last_operation_date','data_posled_operacii','posled_operaciya_data','last_op_at','data_posled_op']
+
+    const by = rowsSlice
+      .map(r => {
+        const wagon = r.vagon_no || r.vagon || r.wagon_no || r.wagon || ''
+        const tenant = r.arendator || r.tenant || ''
+        let days = pickFirstNumber(r, numKeys)
+        if (days === null) {
+          const d = pickFirstDate(r, dateKeys)
+          if (d) days = dayjs(selectedDate.format('YYYY-MM-DD')).diff(d.startOf('day'), 'day')
+        }
+        return { wagon, tenant, days: getNum(days) ?? 0 }
+      })
       .filter(x => x.wagon && x.days > 0)
       .sort((a, b) => b.days - a.days)
       .slice(0, 10)
-    return list
-  }, [rowsSlice])
 
-  // 5) Топ-10 простоя на станции (из среза, без view)
-  const pickDwellDays = (r) => {
-    const candidates = ['prostoi_dney', 'dwell_days', 'idle_days_station', 'prostoi', 'prostoi_dni']
-    for (const c of candidates) {
-      const v = Number(r?.[c])
-      if (!Number.isNaN(v)) return v
-    }
-    return 0
-  }
+    return by
+  }, [rowsSlice, selectedDate])
 
+  // 5) Топ-10 простоя на станции: числовые поля или считаем от даты прибытия/начала простоя
   const topDwell = useMemo(() => {
-    const list = rowsSlice
-      .map(r => ({
-        wagon: r.vagon_no || r.vagon || r.wagon_no || r.wagon || '',
-        station: r.stantziya || r.stantciya || r.station || r.station_name || '',
-        days: pickDwellDays(r)
-      }))
+    const numKeys = ['prostoi_dney','dwell_days','idle_days_station','prostoi','prostoi_dni']
+    const dateKeys = ['arrival_station_date','data_pribytiya','data_na_stantcii_s','prostoi_start_date','data_nachala_prostoya']
+
+    const by = rowsSlice
+      .map(r => {
+        const wagon = r.vagon_no || r.vagon || r.wagon_no || r.wagon || ''
+        const station = r.stantziya || r.stantciya || r.station || r.station_name || ''
+        let days = pickFirstNumber(r, numKeys)
+        if (days === null) {
+          const d = pickFirstDate(r, dateKeys)
+          if (d) days = dayjs(selectedDate.format('YYYY-MM-DD')).diff(d.startOf('day'), 'day')
+        }
+        return { wagon, station, days: getNum(days) ?? 0 }
+      })
       .filter(x => x.wagon && x.station && x.days > 0)
       .sort((a, b) => b.days - a.days)
       .slice(0, 10)
-    return list
-  }, [rowsSlice])
+
+    return by
+  }, [rowsSlice, selectedDate])
 
   const subtitle = useMemo(() => {
     const d = selectedDate.format('DD.MM.YYYY')
@@ -208,7 +239,8 @@ export default function DashboardPage() {
     return `Срез на ${d} ${t}`
   }, [selectedDate, latestTimeDisp])
 
-  const [chartRefEl, chartWidthPx] = [chartRef, chartWidth]
+  // (dev) Подсказываем, какие ключи увидели, если «топы» пустые
+  const showFieldHint = !loading && rowsSlice.length > 0 && topNoOps.length === 0 && topDwell.length === 0
 
   return (
     <AppLayout collapsedDefault>
@@ -251,47 +283,19 @@ export default function DashboardPage() {
         </Grid>
       </Grid>
 
-      {/* Диаграмма: Вагоны по арендаторам */}
+      {/* График по арендаторам */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>Вагоны по арендаторам (топ-15)</Typography>
-          <Box ref={chartRefEl} sx={{ width: '100%', minWidth: 320 }}>
-            {chartWidthPx > 0 && byTenant.length > 0 ? (
-              <BarChart
-                width={chartWidthPx}
-                height={CHART_HEIGHT}
-                data={byTenant}
-                margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
-                key={`tenants-${latestTimeRaw}-${byTenant.length}-${chartWidthPx}`}
-              >
-                <CartesianGrid stroke="hsl(var(--table-border))" strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="name"
-                  angle={-20}
-                  textAnchor="end"
-                  height={60}
-                  interval={0}
-                  tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  domain={[0, 'dataMax']}
-                  tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
-                />
-                <Tooltip />
-                <Bar
-                  dataKey="count"
-                  barSize={28}
-                  isAnimationActive={false}
-                  shape={<BarRectShape fill="hsl(var(--chart-primary))" />}
-                />
-              </BarChart>
+          <Box ref={chartRef} sx={{ width: '100%', minWidth: 320 }}>
+            {chartWidth > 0 && byTenant.length > 0 ? (
+              <TenantsChart width={chartWidth} height={CHART_HEIGHT} data={byTenant} />
             ) : (
               <Typography color="text.secondary">Нет данных для отображения.</Typography>
             )}
           </Box>
           <Typography variant="caption" sx={{ opacity: 0.7 }}>
-            Позиции: {byTenant.length} · контейнер: {chartWidthPx}px
+            Позиции: {byTenant.length} · контейнер: {chartWidth}px
           </Typography>
         </CardContent>
       </Card>
@@ -367,6 +371,16 @@ export default function DashboardPage() {
           </Card>
         </Grid>
       </Grid>
+
+      {showFieldHint && (
+        <Alert sx={{ mt: 2 }} severity="info">
+          Для расчёта «топов» не найдено подходящих колонок. 
+          Проверь, есть ли в <strong>Dislocation_daily</strong> поля вроде:
+          <code> days_no_ops / bez_operacii_dney / prostoi_dney </code> или даты
+          <code> last_operation_date / data_pribytiya / data_nachala_prostoya</code>.
+          Если названия другие — скажи, я подставлю точно.
+        </Alert>
+      )}
     </AppLayout>
   )
 }

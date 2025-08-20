@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+// pages/home.jsx
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { Box, Typography } from '@mui/material'
 import ReportFilters from '../components/ReportFilters'
 import ReportTable from '../components/ReportTable'
 import Pagination from '../components/Pagination'
 import { useReportData } from '../hooks/useReportData'
-import TopNav from '../components/TopNav'
-
+import AppLayout from '../components/AppLayout' // ⬅️ добавили
 
 export default function Home() {
   const today = new Date().toISOString().slice(0, 10)
@@ -35,7 +35,7 @@ export default function Home() {
   useEffect(() => {
     console.log('🧪 Фильтр по статусу:', filters.workingStatus)
     fetchData()
-  }, [page])
+  }, [page]) // намеренно только при смене страницы; поиск дергает fetchData вручную
 
   const handleSearch = () => {
     setPage(1)
@@ -63,31 +63,29 @@ export default function Home() {
     fetchData()
   }
 
-
-
   return (
-    <>
-      <Box sx={{ padding: '2rem', fontFamily: 'Arial', fontSize: '0.65rem' }}>
-        <Typography variant="h4" gutterBottom>Aiway Logistic — отчет</Typography>
+    <AppLayout>
+      <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+        Дислокация
+      </Typography>
 
-        <ReportFilters
-          filters={filters}
-          setFilters={setFilters}
-          onSearch={handleSearch}
-          onClear={handleClear}
-          loading={loading}
-          data={data}
-        />
+      <ReportFilters
+        filters={filters}
+        setFilters={setFilters}
+        onSearch={handleSearch}
+        onClear={handleClear}
+        loading={loading}
+        data={data}
+      />
 
-        {total !== null && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginY: '1rem' }}>
-            <strong>🔎 Найдено строк: {total}</strong>
-          </Box>
-        )}
+      {total !== null && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', my: 2 }}>
+          <Typography variant="subtitle2">🔎 Найдено строк: {total}</Typography>
+        </Box>
+      )}
 
-        <ReportTable data={data} loading={loading} page={page} pageSize={pageSize} />
-        <Pagination page={page} setPage={setPage} total={total} pageSize={pageSize} />
-      </Box>
-    </>
+      <ReportTable data={data} loading={loading} page={page} pageSize={pageSize} />
+      <Pagination page={page} setPage={setPage} total={total} pageSize={pageSize} />
+    </AppLayout>
   )
 }

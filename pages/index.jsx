@@ -97,7 +97,7 @@ export default function Home() {
               variant="h2"
               sx={{ fontWeight: 800, mb: 2 }}
             >
-              Railway Freight
+              Платформа
               <Box component="span" sx={{ color: 'primary.main', display: 'block' }}>
                 BI Train
               </Box>

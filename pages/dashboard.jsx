@@ -189,49 +189,29 @@ export default function DashboardPage() {
 
   // 4) Топ-10 без операций: сначала пробуем числовые поля, иначе считаем от даты последней операции
   const topNoOps = useMemo(() => {
-    const numKeys = ['days_no_ops','bez_operacii_dney','bez_operacij_dney','days_without_ops','idle_days']
-    const dateKeys = ['last_operation_date','data_posled_operacii','posled_operaciya_data','last_op_at','data_posled_op']
-
-    const by = rowsSlice
-      .map(r => {
-        const wagon = r.vagon_no || r.vagon || r.wagon_no || r.wagon || ''
-        const tenant = r.arendator || r.tenant || ''
-        let days = pickFirstNumber(r, numKeys)
-        if (days === null) {
-          const d = pickFirstDate(r, dateKeys)
-          if (d) days = dayjs(selectedDate.format('YYYY-MM-DD')).diff(d.startOf('day'), 'day')
-        }
-        return { wagon, tenant, days: getNum(days) ?? 0 }
-      })
-      .filter(x => x.wagon && x.days > 0)
+    return rowsSlice
+      .map(r => ({
+        wagon:  r.vagon_no || r.vagon || r.wagon_no || r.wagon || '',
+        tenant: r.arendator || r.tenant || '',
+        days:   Number(r.dney_bez_operacii ?? 0)
+      }))
+      .filter(x => x.wagon && Number.isFinite(x.days) && x.days > 0)
       .sort((a, b) => b.days - a.days)
       .slice(0, 10)
-
-    return by
-  }, [rowsSlice, selectedDate])
+  }, [rowsSlice])
 
   // 5) Топ-10 простоя на станции: числовые поля или считаем от даты прибытия/начала простоя
   const topDwell = useMemo(() => {
-    const numKeys = ['prostoi_dney','dwell_days','idle_days_station','prostoi','prostoi_dni']
-    const dateKeys = ['arrival_station_date','data_pribytiya','data_na_stantcii_s','prostoi_start_date','data_nachala_prostoya']
-
-    const by = rowsSlice
-      .map(r => {
-        const wagon = r.vagon_no || r.vagon || r.wagon_no || r.wagon || ''
-        const station = r.stantziya || r.stantciya || r.station || r.station_name || ''
-        let days = pickFirstNumber(r, numKeys)
-        if (days === null) {
-          const d = pickFirstDate(r, dateKeys)
-          if (d) days = dayjs(selectedDate.format('YYYY-MM-DD')).diff(d.startOf('day'), 'day')
-        }
-        return { wagon, station, days: getNum(days) ?? 0 }
-      })
-      .filter(x => x.wagon && x.station && x.days > 0)
+    return rowsSlice
+      .map(r => ({
+        wagon:   r.vagon_no || r.vagon || r.wagon_no || r.wagon || '',
+        station: r.stantziya || r.stantciya || r.station || r.station_name || '',
+        days:    Number(r.prostoj_na_stancii ?? 0)
+      }))
+      .filter(x => x.wagon && x.station && Number.isFinite(x.days) && x.days > 0)
       .sort((a, b) => b.days - a.days)
       .slice(0, 10)
-
-    return by
-  }, [rowsSlice, selectedDate])
+  }, [rowsSlice])
 
   const subtitle = useMemo(() => {
     const d = selectedDate.format('DD.MM.YYYY')

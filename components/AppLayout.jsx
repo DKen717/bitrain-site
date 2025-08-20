@@ -52,8 +52,11 @@ export default function AppLayout({ children }) {
   const isSuperadmin = profile?.role === 'superadmin'
 
   const menu = [
+    { href: '/home', label: 'Главная', icon: <DashboardIcon /> },
     { href: '/dashboard', label: 'Дэшборд', icon: <DashboardIcon /> },
     { href: '/dislocation', label: 'Дислокация', icon: <MapIcon /> },
+    { href: '/counterparties', label: 'Контрагенты', icon: <DashboardIcon /> },
+    { href: '/my-ps', label: 'Мой ПС', icon: <DashboardIcon /> },
     { href: '/reports', label: 'Отчёты', icon: <AssessmentIcon /> },
   ]
 

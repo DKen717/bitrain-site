@@ -49,7 +49,7 @@ export default function OwnedWagonAdd({ open, onClose, onSaved }) {
       // если поля is_active нет — условие просто игнорируется RLS’ом/PG
       const { data, error } = await supabase
         .from('counterparties')
-        .select('id, name_short, name')
+        .select('id, name_short')
         .eq('type', 'Арендодатель')
         .eq('is_active', true)
         .order('name_short', { ascending: true })
@@ -57,7 +57,7 @@ export default function OwnedWagonAdd({ open, onClose, onSaved }) {
       if (!error && Array.isArray(data)) {
         const opts = data.map(r => ({
           id: r.id,
-          label: r.name_short || r.name || '(без названия)'
+          label: r.name_short || '(без названия)'
         }))
         setLessorOptions(opts)
       } else {

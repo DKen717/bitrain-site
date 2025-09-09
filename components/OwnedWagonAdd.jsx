@@ -1,3 +1,4 @@
+// components/OwnedWagonAdd.jsx
 import { useState, useMemo, useEffect } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -6,6 +7,8 @@ import {
 import { supabase } from '../src/supabaseClient'
 
 export default function OwnedWagonAdd({ open, onClose, onSaved }) {
+  const [initDone, setInitDone] = useState(false)
+
   const [wagonList, setWagonList] = useState('')
   const [lessorId, setLessorId] = useState('')
   const [leaseStart, setLeaseStart] = useState('')
@@ -14,9 +17,58 @@ export default function OwnedWagonAdd({ open, onClose, onSaved }) {
   const [leaseRatePerDay, setLeaseRatePerDay] = useState('')
   const [notes, setNotes] = useState('')
 
-  const [lessorOptions, setLessorOptions] = useState([]) // [{id, label}]
+  const [companyId, setCompanyId] = useState('')           // берём из сессии
+  const [lessorOptions, setLessorOptions] = useState([])   // [{id,label}]
 
-  // парсинг номеров (как у арендаторов: 8 цифр, через Enter/запятую)
+  // правильный парсинг company_id из сессии с фолбэками
+  const extractCompanyId = (session) => {
+    const u = session?.user
+    const m = u?.user_metadata || {}
+    const a = u?.app_metadata || {}
+    return (
+      m.company_id ||
+      m.companyId ||
+      a.company_id ||
+      a.companyId ||
+      ''
+    )
+  }
+
+  useEffect(() => {
+    if (!open) return
+    ;(async () => {
+      setInitDone(false)
+      // 1) company_id из сессии
+      const { data: sessionData, error: sErr } = await supabase.auth.getSession()
+      if (!sErr) {
+        const cid = extractCompanyId(sessionData?.session)
+        setCompanyId(cid || '')
+      }
+
+      // 2) арендодатели из counterparties
+      // если поля is_active нет — условие просто игнорируется RLS’ом/PG
+      const { data, error } = await supabase
+        .from('counterparties')
+        .select('id, name_short, name')
+        .eq('type', 'Арендодатель')
+        .eq('is_active', true)
+        .order('name_short', { ascending: true })
+
+      if (!error && Array.isArray(data)) {
+        const opts = data.map(r => ({
+          id: r.id,
+          label: r.name_short || r.name || '(без названия)'
+        }))
+        setLessorOptions(opts)
+      } else {
+        setLessorOptions([])
+      }
+
+      setInitDone(true)
+    })()
+  }, [open])
+
+  // парсинг номеров (как у арендаторов: 8 цифр через Enter/запятую)
   const validWagons = useMemo(() => {
     return wagonList
       .split(/[\n,]+/)
@@ -31,50 +83,17 @@ export default function OwnedWagonAdd({ open, onClose, onSaved }) {
       .filter(w => w && !/^[0-9]{8}$/.test(w))
   }, [wagonList])
 
-  useEffect(() => {
-    if (!open) return
-    const fetchLessors = async () => {
-      // тянем из counterparties всех с type='Арендодатель'
-      const { data, error } = await supabase
-        .from('counterparties')
-        .select('id, name_short')
-        .eq('type', 'Арендодатель')
-        .eq('is_active', true)  // если используешь
-        .order('name_short', { ascending: true })
-
-      if (error) {
-        console.error('counterparties load error:', error)
-        setLessorOptions([])
-        return
-      }
-      const options = (data || []).map(r => ({
-        id: r.id,
-        label: r.name_short || '(без названия)'
-      }))
-      setLessorOptions(options)
-    }
-    fetchLessors()
-  }, [open])
-
   const handleSave = async () => {
-    if (!lessorId || validWagons.length === 0) {
-      alert('Выберите арендодателя и введите корректные номера вагонов.')
-      return
-    }
-
-    const [{ data: userData }, { data: sessionData }] = await Promise.all([
-      supabase.auth.getUser(),
-      supabase.auth.getSession()
-    ])
-    const companyId = sessionData?.session?.user?.user_metadata?.company_id
     if (!companyId) {
-      alert('Не найден company_id в сессии пользователя.')
+      alert('company_id не найден в сессии. Проверь user_metadata.company_id.')
+      return
+    }
+    if (!lessorId || validWagons.length === 0) {
+      alert('Выберите арендодателя и введите корректные номера вагонов (8 цифр).')
       return
     }
 
-    // найдём имя арендодателя для записи в my_wagons
-    const lessor = lessorOptions.find(o => o.id === lessorId)
-    const lessorName = lessor?.label || ''
+    const lessorName = lessorOptions.find(l => l.id === lessorId)?.label || null
 
     const records = validWagons.map(wagon => ({
       owner_company_id: companyId,
@@ -86,9 +105,7 @@ export default function OwnedWagonAdd({ open, onClose, onSaved }) {
       lease_start: leaseStart || null,
       lease_end: leaseEnd || null,
       notes: notes || null,
-      is_owned: true,
-      // created_by проставится по default auth.uid() если задан в БД;
-      // если нет — можно добавить: created_by: userData?.user?.id
+      is_owned: true
     }))
 
     const { error } = await supabase
@@ -97,18 +114,19 @@ export default function OwnedWagonAdd({ open, onClose, onSaved }) {
 
     if (error) {
       alert('Ошибка при добавлении: ' + error.message)
-    } else {
-      onClose()
-      onSaved && onSaved()
-      // очистим форму
-      setWagonList('')
-      // оставим выбранного арендодателя на следующий раз
-      setDocNumber('')
-      setLeaseRatePerDay('')
-      setLeaseStart('')
-      setLeaseEnd('')
-      setNotes('')
+      return
     }
+
+    onClose()
+    onSaved && onSaved()
+
+    // очистим форму, оставляя выбранного арендодателя
+    setWagonList('')
+    setDocNumber('')
+    setLeaseRatePerDay('')
+    setLeaseStart('')
+    setLeaseEnd('')
+    setNotes('')
   }
 
   return (
@@ -196,7 +214,9 @@ export default function OwnedWagonAdd({ open, onClose, onSaved }) {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Отмена</Button>
-        <Button variant="contained" onClick={handleSave}>Сохранить</Button>
+        <Button variant="contained" onClick={handleSave} disabled={!initDone}>
+          Сохранить
+        </Button>
       </DialogActions>
     </Dialog>
   )

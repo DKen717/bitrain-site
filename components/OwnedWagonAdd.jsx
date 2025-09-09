@@ -37,7 +37,7 @@ export default function OwnedWagonAdd({ open, onClose, onSaved }) {
       // тянем из counterparties всех с type='Арендодатель'
       const { data, error } = await supabase
         .from('counterparties')
-        .select('id, name_short, name')
+        .select('id, name_short')
         .eq('type', 'Арендодатель')
         .eq('is_active', true)  // если используешь
         .order('name_short', { ascending: true })
@@ -49,7 +49,7 @@ export default function OwnedWagonAdd({ open, onClose, onSaved }) {
       }
       const options = (data || []).map(r => ({
         id: r.id,
-        label: r.name_short || r.name || '(без названия)'
+        label: r.name_short || '(без названия)'
       }))
       setLessorOptions(options)
     }

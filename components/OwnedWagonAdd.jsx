@@ -1,228 +1,201 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Button, Grid, FormControlLabel, Switch
+  TextField, Button, Typography, MenuItem
 } from '@mui/material'
-import Autocomplete from '@mui/material/Autocomplete'
 import { supabase } from '../src/supabaseClient'
 
 export default function OwnedWagonAdd({ open, onClose, onSaved }) {
-  const [companyId, setCompanyId] = useState(null)
-  const [saving, setSaving] = useState(false)
-  const [bulkMode, setBulkMode] = useState(true) // включаем массовый режим по умолчанию
+  const [wagonList, setWagonList] = useState('')
+  const [lessorId, setLessorId] = useState('')
+  const [leaseStart, setLeaseStart] = useState('')
+  const [leaseEnd, setLeaseEnd] = useState('')
+  const [docNumber, setDocNumber] = useState('')
+  const [leaseRatePerDay, setLeaseRatePerDay] = useState('')
+  const [notes, setNotes] = useState('')
 
-  // Параметры договора/приёма (общие для всех вагонов при массовой вставке)
-  const [form, setForm] = useState({
-    single_wagon: '',        // для одиночного режима
-    bulk_input: '',          // мультивставка (вставляем из таблицы/списком)
-    lessor: null,            // объект { id, name }
-    doc_number: '',
-    lease_rate_per_day: '',
-    lease_start: '',
-    lease_end: '',
-    notes: ''
-  })
+  const [lessorOptions, setLessorOptions] = useState([]) // [{id, label}]
 
-  const [lessorOptions, setLessorOptions] = useState([])
+  // парсинг номеров (как у арендаторов: 8 цифр, через Enter/запятую)
+  const validWagons = useMemo(() => {
+    return wagonList
+      .split(/[\n,]+/)
+      .map(w => w.trim())
+      .filter(w => /^[0-9]{8}$/.test(w))
+  }, [wagonList])
+
+  const invalidWagons = useMemo(() => {
+    return wagonList
+      .split(/[\n,]+/)
+      .map(w => w.trim())
+      .filter(w => w && !/^[0-9]{8}$/.test(w))
+  }, [wagonList])
 
   useEffect(() => {
-    const init = async () => {
-      const { data, error } = await supabase.auth.getSession()
-      if (!error && data?.session?.user?.user_metadata?.company_id) {
-        setCompanyId(data.session.user.user_metadata.company_id)
-      }
-      // Подгружаем арендодателей из counterparties
-      const { data: lessors, error: e2 } = await supabase
+    if (!open) return
+    const fetchLessors = async () => {
+      // тянем из counterparties всех с type='Арендодатель'
+      const { data, error } = await supabase
         .from('counterparties')
-        .select('id, name')
+        .select('id, name_short, name')
         .eq('type', 'Арендодатель')
-        .order('name', { ascending: true })
-      if (!e2 && Array.isArray(lessors)) {
-        setLessorOptions(lessors)
+        .order('name_short', { ascending: true })
+
+      if (error) {
+        console.error('counterparties load error:', error)
+        setLessorOptions([])
+        return
       }
+      const options = (data || []).map(r => ({
+        id: r.id,
+        label: r.name_short || r.name || '(без названия)'
+      }))
+      setLessorOptions(options)
     }
-    if (open) init()
+    fetchLessors()
   }, [open])
 
-  const onChange = (field) => (e) => {
-    setForm(prev => ({ ...prev, [field]: e.target.value }))
-  }
-
-  function parseBulk(input) {
-    // Берём все последовательности цифр длиной 5+ (подходит для 8-значных),
-    // игнорируем пробелы/табуляции/текстовые столбцы
-    const matches = String(input).match(/\d{5,}/g) || []
-    const unique = Array.from(new Set(matches.map(n => Number(n)).filter(n => Number.isFinite(n) && n > 0)))
-    return unique
-  }
-
-  const bulkWagons = useMemo(() => parseBulk(form.bulk_input), [form.bulk_input])
-
   const handleSave = async () => {
-    if (!companyId) return alert('Не найден company_id в сессии пользователя.')
-    if (!form.lessor) return alert('Выберите арендодателя.')
-
-    let wagonsList = []
-    if (bulkMode) {
-      wagonsList = bulkWagons
-      if (!wagonsList.length) return alert('Вставьте номера вагонов в поле «Список номеров».')
-    } else {
-      const n = Number(form.single_wagon)
-      if (!n) return alert('Укажите номер вагона.')
-      wagonsList = [n]
+    if (!lessorId || validWagons.length === 0) {
+      alert('Выберите арендодателя и введите корректные номера вагонов.')
+      return
     }
 
-    setSaving(true)
-    try {
-      const payloads = wagonsList.map(w => ({
-        owner_company_id: companyId,
-        wagon_number: w,
-        lessor_company_id: form.lessor.id,
-        lessor_name: form.lessor.name,
-        doc_number: form.doc_number || null,
-        lease_rate_per_day: form.lease_rate_per_day ? Number(form.lease_rate_per_day) : null,
-        lease_start: form.lease_start || null,
-        lease_end: form.lease_end || null,
-        notes: form.notes || null,
-        is_owned: true
-      }))
+    const [{ data: userData }, { data: sessionData }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.auth.getSession()
+    ])
+    const companyId = sessionData?.session?.user?.user_metadata?.company_id
+    if (!companyId) {
+      alert('Не найден company_id в сессии пользователя.')
+      return
+    }
 
-      const { error } = await supabase
-        .from('my_wagons')
-        .upsert(payloads, { onConflict: 'wagon_number' })
+    // найдём имя арендодателя для записи в my_wagons
+    const lessor = lessorOptions.find(o => o.id === lessorId)
+    const lessorName = lessor?.label || ''
 
-      if (error) throw error
+    const records = validWagons.map(wagon => ({
+      owner_company_id: companyId,
+      wagon_number: Number(wagon),
+      lessor_company_id: lessorId,
+      lessor_name: lessorName,
+      doc_number: docNumber || null,
+      lease_rate_per_day: leaseRatePerDay ? Number(leaseRatePerDay) : null,
+      lease_start: leaseStart || null,
+      lease_end: leaseEnd || null,
+      notes: notes || null,
+      is_owned: true,
+      // created_by проставится по default auth.uid() если задан в БД;
+      // если нет — можно добавить: created_by: userData?.user?.id
+    }))
+
+    const { error } = await supabase
+      .from('my_wagons')
+      .upsert(records, { onConflict: 'wagon_number' })
+
+    if (error) {
+      alert('Ошибка при добавлении: ' + error.message)
+    } else {
+      onClose()
       onSaved && onSaved()
-
-      // очистка формы
-      setForm({
-        single_wagon: '',
-        bulk_input: '',
-        lessor: form.lessor, // оставим выбранного арендодателя
-        doc_number: '',
-        lease_rate_per_day: '',
-        lease_start: '',
-        lease_end: '',
-        notes: ''
-      })
-    } catch (e) {
-      console.error(e)
-      alert('Ошибка сохранения: ' + (e?.message || e))
-    } finally {
-      setSaving(false)
+      // очистим форму
+      setWagonList('')
+      // оставим выбранного арендодателя на следующий раз
+      setDocNumber('')
+      setLeaseRatePerDay('')
+      setLeaseStart('')
+      setLeaseEnd('')
+      setNotes('')
     }
   }
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Добавить собственные вагоны</DialogTitle>
-      <DialogContent dividers>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={<Switch checked={bulkMode} onChange={(e) => setBulkMode(e.target.checked)} />}
-              label={bulkMode ? 'Режим: массовая вставка' : 'Режим: один вагон'}
-            />
-          </Grid>
+      <DialogContent>
+        <TextField
+          label="Номера вагонов (8 цифр, через Enter или запятую)"
+          fullWidth
+          multiline
+          minRows={3}
+          sx={{ mt: 2 }}
+          value={wagonList}
+          onChange={e => setWagonList(e.target.value)}
+          error={invalidWagons.length > 0}
+          helperText={
+            invalidWagons.length > 0
+              ? `Игнорируются невалидные номера: ${invalidWagons.join(', ')}`
+              : ''
+          }
+        />
 
-          {bulkMode ? (
-            <>
-              <Grid item xs={12}>
-                <TextField
-                  label="Список номеров (вставьте из Excel/таблицы/текста)"
-                  placeholder="Например: 12345678, 12345679&#10;или столбец из Excel"
-                  value={form.bulk_input}
-                  onChange={onChange('bulk_input')}
-                  fullWidth
-                  multiline
-                  minRows={4}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                Найдено номеров: <b>{bulkWagons.length}</b>
-                {bulkWagons.length ? ` (пример: ${bulkWagons.slice(0, 10).join(', ')}${bulkWagons.length > 10 ? '…' : ''})` : ''}
-              </Grid>
-            </>
-          ) : (
-            <Grid item xs={12} md={4}>
-              <TextField
-                label="Номер вагона"
-                type="number"
-                value={form.single_wagon}
-                onChange={onChange('single_wagon')}
-                fullWidth
-                required
-              />
-            </Grid>
-          )}
+        <Typography sx={{ mt: 1, mb: 1 }}>
+          Будет добавлено: <strong>{validWagons.length}</strong> вагонов
+        </Typography>
 
-          <Grid item xs={12} md={6}>
-            <Autocomplete
-              options={lessorOptions}
-              getOptionLabel={(o) => o?.name || ''}
-              value={form.lessor}
-              onChange={(_e, v) => setForm(prev => ({ ...prev, lessor: v }))}
-              renderInput={(params) => <TextField {...params} label="Арендодатель" required />}
-            />
-          </Grid>
+        <TextField
+          select
+          fullWidth
+          label="Арендодатель"
+          margin="dense"
+          value={lessorId}
+          onChange={e => setLessorId(e.target.value)}
+        >
+          {lessorOptions.map(opt => (
+            <MenuItem key={opt.id} value={opt.id}>{opt.label}</MenuItem>
+          ))}
+        </TextField>
 
-          <Grid item xs={12} md={6}>
-            <TextField
-              label="№ документа (акт)"
-              value={form.doc_number}
-              onChange={onChange('doc_number')}
-              fullWidth
-            />
-          </Grid>
+        <TextField
+          label="№ документа (акт)"
+          fullWidth
+          margin="dense"
+          value={docNumber}
+          onChange={e => setDocNumber(e.target.value)}
+        />
 
-          <Grid item xs={12} md={4}>
-            <TextField
-              label="Ставка, тг/сутки"
-              type="number"
-              value={form.lease_rate_per_day}
-              onChange={onChange('lease_rate_per_day')}
-              fullWidth
-            />
-          </Grid>
+        <TextField
+          label="Ставка, тг/сутки"
+          type="number"
+          fullWidth
+          margin="dense"
+          value={leaseRatePerDay}
+          onChange={e => setLeaseRatePerDay(e.target.value)}
+        />
 
-          <Grid item xs={12} md={4}>
-            <TextField
-              label="Срок аренды (с)"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={form.lease_start}
-              onChange={onChange('lease_start')}
-              fullWidth
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <TextField
-              label="Срок аренды (по)"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={form.lease_end}
-              onChange={onChange('lease_end')}
-              fullWidth
-            />
-          </Grid>
+        <TextField
+          label="Срок аренды (с)"
+          type="date"
+          fullWidth
+          margin="dense"
+          InputLabelProps={{ shrink: true }}
+          value={leaseStart}
+          onChange={e => setLeaseStart(e.target.value)}
+        />
+        <TextField
+          label="Срок аренды (по)"
+          type="date"
+          fullWidth
+          margin="dense"
+          InputLabelProps={{ shrink: true }}
+          value={leaseEnd}
+          onChange={e => setLeaseEnd(e.target.value)}
+        />
 
-          <Grid item xs={12}>
-            <TextField
-              label="Примечание"
-              value={form.notes}
-              onChange={onChange('notes')}
-              fullWidth
-              multiline
-              minRows={2}
-            />
-          </Grid>
-        </Grid>
+        <TextField
+          label="Примечание"
+          fullWidth
+          margin="dense"
+          multiline
+          minRows={2}
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+        />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={saving}>Отмена</Button>
-        <Button variant="contained" onClick={handleSave} disabled={saving}>
-          Сохранить
-        </Button>
+        <Button onClick={onClose}>Отмена</Button>
+        <Button variant="contained" onClick={handleSave}>Сохранить</Button>
       </DialogActions>
     </Dialog>
   )

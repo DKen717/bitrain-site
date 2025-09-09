@@ -9,7 +9,7 @@ import {
 import { supabase } from '../src/supabaseClient'
 import AppLayout from '../components/AppLayout'
 
-const TYPE_OPTIONS = ['Арендатор', 'Собственник']
+const TYPE_OPTIONS = ['Арендатор', 'Арендодатель']
 
 export default function CounterpartiesPage() {
   const [counterparties, setCounterparties] = useState([])

@@ -32,7 +32,7 @@ export default function CounterpartiesPage() {
 
   const [userProfile, setUserProfile] = useState(null)
   const canManage =
-    userProfile?.role === 'superadmin' || userProfile?.role === 'company_admin'
+    userProfile?.role === ('superadmin', 'companyadmin','user') || userProfile?.role === 'company_admin'
 
   useEffect(() => {
     loadUserAndData()

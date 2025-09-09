@@ -39,6 +39,7 @@ export default function OwnedWagonAdd({ open, onClose, onSaved }) {
         .from('counterparties')
         .select('id, name_short, name')
         .eq('type', 'Арендодатель')
+        .eq('is_active', true)  // если используешь
         .order('name_short', { ascending: true })
 
       if (error) {

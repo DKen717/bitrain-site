@@ -1,5 +1,11 @@
+import dynamic from 'next/dynamic'
 import AppLayout from '../../components/AppLayout'
-import { Container, Typography, Card, CardContent } from '@mui/material'
+import { Container, Typography } from '@mui/material'
+
+const OwnedParkTable = dynamic(
+  () => import('../../components/OwnedParkTable'),
+  { ssr: false }
+)
 
 export default function MyPsSobstven() {
   return (
@@ -8,14 +14,7 @@ export default function MyPsSobstven() {
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
           Мой ПС — Вагоны в собственности
         </Typography>
-
-        <Card>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary">
-              Здесь появится таблица собственных вагонов с фильтрами и историей.
-            </Typography>
-          </CardContent>
-        </Card>
+        <OwnedParkTable />
       </Container>
     </AppLayout>
   )

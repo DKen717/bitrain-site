@@ -10,12 +10,11 @@ import OwnedWagonAdd from './OwnedWagonAdd'
 export default function OwnedParkTable() {
   const [rows, setRows] = useState([])
 
-  // фильтры (без арендаторов)
   const [filters, setFilters] = useState({
     wagons: [],
     lessors: [],
-    acceptedFrom: '',
-    acceptedTo: ''
+    leaseFrom: '',
+    leaseTo: ''
   })
 
   const [wagonOptions, setWagonOptions] = useState([])
@@ -76,11 +75,12 @@ export default function OwnedParkTable() {
     return rows.filter(r => {
       if (filters.wagons.length && !filters.wagons.includes(r.wagon_number)) return false
       if (filters.lessors.length && !filters.lessors.includes(r.lessor_name)) return false
-      if (filters.acceptedFrom) {
-        if (!r.accepted_at || new Date(r.accepted_at) < new Date(filters.acceptedFrom)) return false
+      // фильтрация по сроку аренды (дата "с")
+      if (filters.leaseFrom) {
+        if (!r.lease_start || new Date(r.lease_start) < new Date(filters.leaseFrom)) return false
       }
-      if (filters.acceptedTo) {
-        if (!r.accepted_at || new Date(r.accepted_at) > new Date(filters.acceptedTo)) return false
+      if (filters.leaseTo) {
+        if (!r.lease_start || new Date(r.lease_start) > new Date(filters.leaseTo)) return false
       }
       return true
     })
@@ -111,18 +111,18 @@ export default function OwnedParkTable() {
         <TextField
           size="small"
           type="date"
-          label="Дата принятия c"
+          label="Срок аренды (с)"
           InputLabelProps={{ shrink: true }}
-          value={filters.acceptedFrom}
-          onChange={(e) => setFilters(prev => ({ ...prev, acceptedFrom: e.target.value }))}
+          value={filters.leaseFrom}
+          onChange={(e) => setFilters(prev => ({ ...prev, leaseFrom: e.target.value }))}
         />
         <TextField
           size="small"
           type="date"
-          label="Дата принятия по"
+          label="Срок аренды (по)"
           InputLabelProps={{ shrink: true }}
-          value={filters.acceptedTo}
-          onChange={(e) => setFilters(prev => ({ ...prev, acceptedTo: e.target.value }))}
+          value={filters.leaseTo}
+          onChange={(e) => setFilters(prev => ({ ...prev, leaseTo: e.target.value }))}
         />
 
         <Button variant="outlined" onClick={() => { loadData(); loadFilterOptions(); }}>
@@ -130,13 +130,13 @@ export default function OwnedParkTable() {
         </Button>
         <Button
           variant="text"
-          onClick={() => setFilters({ wagons: [], lessors: [], acceptedFrom: '', acceptedTo: '' })}
+          onClick={() => setFilters({ wagons: [], lessors: [], leaseFrom: '', leaseTo: '' })}
         >
           Очистить
         </Button>
 
         <Button variant="contained" sx={{ ml: 'auto' }} onClick={() => setShowAddDialog(true)}>
-          Добавить вагон
+          Добавить вагоны
         </Button>
       </Box>
 
@@ -149,7 +149,6 @@ export default function OwnedParkTable() {
         <TableHead>
           <TableRow>
             <TableCell>Номер вагона</TableCell>
-            <TableCell>Дата принятия</TableCell>
             <TableCell>Арендодатель</TableCell>
             <TableCell>№ документа</TableCell>
             <TableCell>Ставка, тг/сутки</TableCell>
@@ -162,7 +161,6 @@ export default function OwnedParkTable() {
           {filtered.map(r => (
             <TableRow key={r.id}>
               <TableCell>{r.wagon_number}</TableCell>
-              <TableCell>{formatDate(r.accepted_at)}</TableCell>
               <TableCell>{r.lessor_name || ''}</TableCell>
               <TableCell>{r.doc_number || ''}</TableCell>
               <TableCell>{r.lease_rate_per_day != null ? Number(r.lease_rate_per_day).toLocaleString('ru-RU') : ''}</TableCell>
@@ -173,13 +171,13 @@ export default function OwnedParkTable() {
           ))}
           {!filtered.length && (
             <TableRow>
-              <TableCell colSpan={8}>Нет данных. Проверьте фильтры или добавьте вагон.</TableCell>
+              <TableCell colSpan={7}>Нет данных. Проверьте фильтры или добавьте вагоны.</TableCell>
             </TableRow>
           )}
         </TableBody>
       </Table>
 
-      {/* Диалог добавления */}
+      {/* Диалог добавления (массовая вставка) */}
       <OwnedWagonAdd
         open={showAddDialog}
         onClose={() => setShowAddDialog(false)}

@@ -1,10 +1,10 @@
 // pages/my-ps.jsx
 import { Typography } from '@mui/material'
 import dynamic from 'next/dynamic'
-import AppLayout from '../components/AppLayout'
+import AppLayout from '../../components/AppLayout'
 
 // если таблица 100% SSR-safe, можно убрать dynamic и импортировать напрямую
-const RentedParkTable = dynamic(() => import('../components/RentedParkTable'), { ssr: false })
+const RentedParkTable = dynamic(() => import('../../components/RentedParkTable'), { ssr: false })
 
 export default function MyPSArenda() {
   return (

@@ -5,27 +5,22 @@ import {
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 import { supabase } from '../src/supabaseClient'
-import ParkHistoryDialog from './RentedParkHistory'   // твой диалог истории
-import OwnedWagonAdd from './OwnedWagonAdd'           // диалог "Добавить вагон"
+import ParkHistoryDialog from './RentedParkHistory'   // проверь точное имя файла
+import OwnedWagonAdd from './OwnedWagonAdd'
 
 export default function OwnedParkTable() {
-  const [rows, setRows] = useState([]) // данные из my_wagons + tenant merge
-  const [rawWagons, setRawWagons] = useState([]) // чисто my_wagons
-
-  // фильтры
+  const [rows, setRows] = useState([])          // my_wagons + tenant merge
   const [filters, setFilters] = useState({
     wagons: [],
     lessors: [],
-    leasedNow: 'all',      // all | yes | no
+    leasedNow: 'all',        // all | yes | no
     acceptedFrom: '',
     acceptedTo: ''
   })
 
-  // опции фильтров
   const [wagonOptions, setWagonOptions] = useState([])
   const [lessorOptions, setLessorOptions] = useState([])
 
-  // диалоги
   const [selectedWagon, setSelectedWagon] = useState(null)
   const [showHistory, setShowHistory] = useState(false)
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -36,7 +31,7 @@ export default function OwnedParkTable() {
   }, [])
 
   async function loadData() {
-    // 1) тянем собственные вагоны
+    // 1) собственные вагоны
     const { data: mw, error: e1 } = await supabase
       .from('my_wagons')
       .select('*')
@@ -46,18 +41,16 @@ export default function OwnedParkTable() {
     if (e1) {
       console.error('⚠️ my_wagons load error:', e1)
       setRows([])
-      setRawWagons([])
       return
     }
 
-    setRawWagons(mw || [])
-
-    // 2) тянем текущих арендаторов для этих вагонов (активные)
     const wagonNums = (mw || []).map(r => r.wagon_number).filter(Boolean)
+
+    // 2) активные арендаторы для этих вагонов
     let tenantsMap = new Map()
     if (wagonNums.length) {
       const { data: tenants, error: e2 } = await supabase
-        .from('Arendatori') // <= как в твоём коде
+        .from('Arendatori') // использую регистр как у тебя в коде
         .select('wagon_number, name_arendator, data_peredachi, data_izmeneniya')
         .eq('is_active', true)
         .eq('is_deleted', false)
@@ -66,7 +59,6 @@ export default function OwnedParkTable() {
       if (e2) {
         console.error('⚠️ tenants load error:', e2)
       } else if (tenants?.length) {
-        // если вдруг будет несколько активных по одному вагону — возьмём самый "свежий" по дате передачи
         tenants
           .sort((a, b) => new Date(b.data_peredachi || 0) - new Date(a.data_peredachi || 0))
           .forEach(t => {
@@ -75,7 +67,7 @@ export default function OwnedParkTable() {
       }
     }
 
-    // 3) смёржим tenant-поля
+    // 3) мерджим
     const merged = (mw || []).map(r => {
       const t = tenantsMap.get(r.wagon_number)
       return {
@@ -91,7 +83,7 @@ export default function OwnedParkTable() {
   }
 
   async function loadFilterOptions() {
-    // опции номеров (из my_wagons)
+    // номера
     const { data: w, error: e1 } = await supabase
       .from('my_wagons')
       .select('wagon_number')
@@ -101,7 +93,7 @@ export default function OwnedParkTable() {
       setWagonOptions([...new Set(w.map(x => x.wagon_number).filter(Boolean))])
     }
 
-    // опции арендодателей (из my_wagons)
+    // арендодатели
     const { data: l, error: e2 } = await supabase
       .from('my_wagons')
       .select('lessor_name')
@@ -123,14 +115,10 @@ export default function OwnedParkTable() {
 
   const filtered = useMemo(() => {
     return rows.filter(r => {
-      // вагон
       if (filters.wagons.length && !filters.wagons.includes(r.wagon_number)) return false
-      // арендодатель
       if (filters.lessors.length && !filters.lessors.includes(r.lessor_name)) return false
-      // сдан сейчас?
       if (filters.leasedNow === 'yes' && !r.leased_now) return false
       if (filters.leasedNow === 'no' && r.leased_now) return false
-      // дата принятия в интервале
       if (filters.acceptedFrom) {
         if (!r.accepted_at || new Date(r.accepted_at) < new Date(filters.acceptedFrom)) return false
       }
@@ -227,3 +215,50 @@ export default function OwnedParkTable() {
             <TableCell>Арендодатель</TableCell>
             <TableCell>№ документа</TableCell>
             <TableCell>Ставка, тг/сутки</TableCell>
+            <TableCell>Срок аренды (с)</TableCell>
+            <TableCell>Срок аренды (по)</TableCell>
+            <TableCell>Текущий арендатор</TableCell>
+            <TableCell>Сдан сейчас?</TableCell>
+            <TableCell>Действия</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {filtered.map(r => (
+            <TableRow key={r.id}>
+              <TableCell>{r.wagon_number}</TableCell>
+              <TableCell>{formatDate(r.accepted_at)}</TableCell>
+              <TableCell>{r.lessor_name || ''}</TableCell>
+              <TableCell>{r.doc_number || ''}</TableCell>
+              <TableCell>{r.lease_rate_per_day != null ? Number(r.lease_rate_per_day).toLocaleString('ru-RU') : ''}</TableCell>
+              <TableCell>{formatDate(r.lease_start)}</TableCell>
+              <TableCell>{formatDate(r.lease_end)}</TableCell>
+              <TableCell>{r.current_tenant || '—'}</TableCell>
+              <TableCell>{r.leased_now ? 'Да' : 'Нет'}</TableCell>
+              <TableCell>
+                <Button onClick={() => handleHistory(r.wagon_number)}>История</Button>
+              </TableCell>
+            </TableRow>
+          ))}
+          {!filtered.length && (
+            <TableRow>
+              <TableCell colSpan={10}>Нет данных. Проверьте фильтры или добавьте вагон.</TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+
+      {/* Диалоги */}
+      <ParkHistoryDialog
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        wagon={selectedWagon}
+      />
+
+      <OwnedWagonAdd
+        open={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onSaved={() => { setShowAddDialog(false); loadData(); loadFilterOptions(); }}
+      />
+    </>
+  )
+}

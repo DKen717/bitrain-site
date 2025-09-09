@@ -6,7 +6,7 @@ import AppLayout from '../components/AppLayout'
 // если таблица 100% SSR-safe, можно убрать dynamic и импортировать напрямую
 const RentedParkTable = dynamic(() => import('../components/RentedParkTable'), { ssr: false })
 
-export default function MyPSPage() {
+export default function MyPSArenda() {
   return (
     <AppLayout>
       <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>

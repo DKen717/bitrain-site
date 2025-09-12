@@ -58,18 +58,16 @@ export default function ExcludeDialog({ open, onClose, onSaved }) {
       const rec = {
         wagon_number: num,
         name_arendator: null,
-        lease_start: null,
-        lease_end: excludeDate,  // дата исключения
+        lease_start: excludeDate,   // ← Дата исключения "С"
+        lease_end: null,            // ← больше не используем здесь
         lease_rate_per_day: null,
         doc_number: null,
         company_id: cid,
         created_by: uid || null,
         is_active: false,
         is_deleted: false,
-        data_dobavlen: new Date().toISOString().slice(0,10)
       }
-      const { error: insErr } = await supabase.from('Arendatori').insert(rec)
-      if (insErr) errors.push(`Вагон ${w}: insert error: ${insErr.message}`)
+      await supabase.from('Arendatori').insert(rec)
     }
 
     setSaving(false)

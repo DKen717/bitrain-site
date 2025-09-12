@@ -16,13 +16,14 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
   const [notes, setNotes] = useState('')
 
   const [companyId, setCompanyId] = useState('')
+  const [companyName, setCompanyName] = useState('')
   const [lessorOptions, setLessorOptions] = useState([]) // [{id,label}]
   const [initDone, setInitDone] = useState(false)
 
-  // 8-значные номера (через Enter/запятую) — как в арендаторах
+  // 8-значные номера (через Enter/запятую), как в арендаторах
   const validWagons = useMemo(() => {
     return wagonList
-      .split(/[\n,]+/)      // перенос строки или запятая
+      .split(/[\n,]+/)
       .map(w => w.trim())
       .filter(w => /^[0-9]{8}$/.test(w))
   }, [wagonList])
@@ -34,17 +35,26 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
       .filter(w => w && !/^[0-9]{8}$/.test(w))
   }, [wagonList])
 
-  // аккуратно достаем company_id как в твоём паттерне, с фолбэком на getUser
-  const getCompanyIdFromAuth = async () => {
-    const session = await supabase.auth.getSession()
-    let cid = session?.data?.session?.user?.user_metadata?.company_id
-      ?? session?.data?.session?.user?.user_metadata?.companyId
-    if (!cid) {
-      const user = await supabase.auth.getUser()
-      cid = user?.data?.user?.user_metadata?.company_id
-        ?? user?.data?.user?.user_metadata?.companyId
-    }
-    return cid || ''
+  // Получаем company_id по user_id (как просил):
+  // 1) auth.getUser() -> user.id
+  // 2) users_custom.where(user_id = user.id).single()
+  // 3) фолбэк: user_metadata.company_id|companyId
+  const resolveCompanyIdByUserId = async () => {
+    const { data: userData, error: uErr } = await supabase.auth.getUser()
+    const uid = userData?.user?.id
+    if (!uid || uErr) return ''
+
+    const { data: profile, error: pErr } = await supabase
+      .from('users_custom')
+      .select('company_id')
+      .eq('user_id', uid)
+      .single()
+
+    if (!pErr && profile?.company_id) return profile.company_id
+
+    // фолбэк на метаданные (на всякий случай)
+    const m = userData?.user?.user_metadata || {}
+    return m.company_id || m.companyId || ''
   }
 
   useEffect(() => {
@@ -52,21 +62,33 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
     ;(async () => {
       setInitDone(false)
 
-      // 1) company_id из auth (session / user)
-      const cid = await getCompanyIdFromAuth()
-      setCompanyId(cid)
+      // 1) company_id по user_id
+      const cid = await resolveCompanyIdByUserId()
+      setCompanyId(cid || '')
 
-      // 2) арендодатели (только нужные поля)
-      const { data, error } = await supabase
+      // имя компании (если есть таблица companies)
+      if (cid) {
+        const { data: c } = await supabase
+          .from('companies')
+          .select('name')
+          .eq('id', cid)
+          .maybeSingle()
+        setCompanyName(c?.name || '')
+      } else {
+        setCompanyName('')
+      }
+
+      // 2) арендодатели (как просил: только id, name_short)
+      const { data: lessors, error: lErr } = await supabase
         .from('counterparties')
         .select('id, name_short')
         .eq('type', 'Арендодатель')
         .order('name_short', { ascending: true })
 
-      if (!error && Array.isArray(data)) {
-        setLessorOptions(data.map(r => ({ id: r.id, label: r.name_short || '(без названия)' })))
+      if (!lErr && Array.isArray(lessors)) {
+        setLessorOptions(lessors.map(r => ({ id: r.id, label: r.name_short || '(без названия)' })))
       } else {
-        console.error('counterparties load error:', error)
+        console.error('counterparties load error:', lErr)
         setLessorOptions([])
       }
 
@@ -79,15 +101,13 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
       alert('Выберите арендодателя и введите корректные номера вагонов (8 цифр).')
       return
     }
-
-    // если по какой-то причине companyId не успел подтянуться — попробуем ещё раз тут
     let cid = companyId
     if (!cid) {
-      cid = await getCompanyIdFromAuth()
+      cid = await resolveCompanyIdByUserId()
       setCompanyId(cid)
     }
     if (!cid) {
-      alert('company_id не найден в session.user.user_metadata.company_id')
+      alert('company_id не найден. Проверьте запись в users_custom для текущего user_id.')
       return
     }
 
@@ -118,7 +138,7 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
     onClose()
     onSaved && onSaved()
 
-    // очистить форму (арендодателя оставим выбранным)
+    // очистим форму (арендодателя оставим)
     setWagonList('')
     setDocNumber('')
     setLeaseRatePerDay('')
@@ -131,6 +151,11 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Добавить собственные вагоны</DialogTitle>
       <DialogContent>
+        {/* для наглядности выведем текущую компанию */}
+        <Typography variant="caption" color="text.secondary">
+          Компания: {companyName ? `${companyName} — ` : ''}{companyId || 'не определена'}
+        </Typography>
+
         <TextField
           label="Номера вагонов (8 цифр, через Enter или запятую)"
           fullWidth

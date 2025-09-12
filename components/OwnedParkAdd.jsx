@@ -6,7 +6,7 @@ import {
 } from '@mui/material'
 import { supabase } from '../src/supabaseClient'
 
-export default function OwnedWagonAdd({ open, onClose, onSaved }) {
+export default function OwnedParkAdd({ open, onClose, onSaved }) {
   const [wagonList, setWagonList] = useState('')
   const [lessorId, setLessorId] = useState('')
   const [leaseStart, setLeaseStart] = useState('')

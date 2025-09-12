@@ -5,7 +5,7 @@ import {
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 import { supabase } from '../src/supabaseClient'
-import OwnedWagonAdd from './OwnedWagonAdd'
+import OwnedParkAdd from './OwnedParkAdd'
 
 export default function OwnedParkTable() {
   const [rows, setRows] = useState([])

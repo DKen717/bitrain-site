@@ -1,7 +1,6 @@
  import dynamic from 'next/dynamic'
  import AppLayout from '../../components/AppLayout'
  import { Container, Typography } from '@mui/material'
- import CompanyInfoBar from '../../components/CompanyInfoBar'
 
  const OwnedParkTable = dynamic(
    () => import('../../components/OwnedParkTable'),
@@ -15,7 +14,6 @@
          <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
            Мой ПС — Вагоны в собственности
          </Typography>
-         <CompanyInfoBar />
          <OwnedParkTable />
        </Container>
      </AppLayout>

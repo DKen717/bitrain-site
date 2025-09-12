@@ -178,7 +178,7 @@ export default function OwnedParkTable() {
       </Table>
 
       {/* Диалог добавления (массовая вставка) */}
-      <OwnedWagonAdd
+      <OwnedParkAdd
         open={showAddDialog}
         onClose={() => setShowAddDialog(false)}
         onSaved={() => { setShowAddDialog(false); loadData(); loadFilterOptions(); }}

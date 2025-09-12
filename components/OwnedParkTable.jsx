@@ -1,26 +1,26 @@
-import { useEffect, useState, useMemo } from 'react'
+// components/OwnedParkTable.jsx
+import { useEffect, useState } from 'react'
 import {
   Table, TableHead, TableRow, TableCell, TableBody,
   Button, Typography, Chip, Box
 } from '@mui/material'
 import { supabase } from '../src/supabaseClient'
 import OwnedParkAdd from './OwnedParkAdd'
+import OwnedParkHistory from './OwnedParkHistory'
 
 export default function OwnedParkTable() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [selectedWagon, setSelectedWagon] = useState(null)
 
-  // company_id берём по user_id из users_custom (как договорились)
   const resolveCompanyIdByUserId = async () => {
     const { data: u } = await supabase.auth.getUser()
     const uid = u?.user?.id
     if (!uid) return ''
     const { data: prof } = await supabase
-      .from('users_custom')
-      .select('company_id')
-      .eq('user_id', uid)
-      .single()
+      .from('users_custom').select('company_id').eq('user_id', uid).single()
     return prof?.company_id ||
       u?.user?.user_metadata?.company_id ||
       u?.user?.user_metadata?.companyId || ''
@@ -30,14 +30,12 @@ export default function OwnedParkTable() {
     setLoading(true)
     try {
       const cid = await resolveCompanyIdByUserId()
-      if (!cid) {
-        setRows([])
-        return
-      }
+      if (!cid) { setRows([]); return }
       const { data, error } = await supabase
         .from('my_wagons')
-        .select('id, wagon_number, lessor_name, doc_number, lease_rate_per_day, lease_start, lease_end, is_owned')
+        .select('id, owner_company_id, wagon_number, lessor_name, doc_number, lease_rate_per_day, lease_start, lease_end, is_owned')
         .eq('owner_company_id', cid)
+        .eq('is_owned', true)                       // показываем только активные
         .order('wagon_number', { ascending: true })
       if (error) throw error
       setRows(data || [])
@@ -53,10 +51,7 @@ export default function OwnedParkTable() {
   const fmtDate = (d) => {
     if (!d) return ''
     const dt = new Date(d)
-    const dd = String(dt.getDate()).padStart(2, '0')
-    const mm = String(dt.getMonth() + 1).padStart(2, '0')
-    const yyyy = dt.getFullYear()
-    return `${dd}.${mm}.${yyyy}`
+    return `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}.${dt.getFullYear()}`
   }
 
   const handleSoftRemove = async (row) => {
@@ -71,19 +66,19 @@ export default function OwnedParkTable() {
 
   const handleHardDelete = async (row) => {
     if (!window.confirm(
-      `Удалить вагон ${row.wagon_number} навсегда?\n` +
-      `Все связанные записи, если есть каскадные связи, тоже будут удалены.`
+      `Удалить вагон ${row.wagon_number} навсегда?\nЭто действие нельзя отменить.`
     )) return
-
-    // Если у тебя «исторические»/связанные таблицы не на каскаде,
-    // удаление их нужно реализовать серверной функцией (RPC). Здесь удаляем саму запись.
     const { error } = await supabase
       .from('my_wagons')
       .delete()
       .eq('id', row.id)
-
     if (error) alert('Ошибка при удалении: ' + error.message)
     else loadData()
+  }
+
+  const handleHistory = (row) => {
+    setSelectedWagon(row)
+    setShowHistory(true)
   }
 
   return (
@@ -96,7 +91,7 @@ export default function OwnedParkTable() {
           Добавить
         </Button>
         <Typography variant="body2" color="text.secondary" sx={{ ml: 'auto' }}>
-          {loading ? 'Загрузка…' : `Показано: ${rows.length}`}
+          {loading ? 'Загрузка…' : `Показано активных: ${rows.length}`}
         </Typography>
       </Box>
 
@@ -109,7 +104,6 @@ export default function OwnedParkTable() {
             <TableCell>Ставка, тг/сутки</TableCell>
             <TableCell>Срок (с)</TableCell>
             <TableCell>Срок (по)</TableCell>
-            <TableCell>Статус</TableCell>
             <TableCell align="right">Действия</TableCell>
           </TableRow>
         </TableHead>
@@ -122,29 +116,15 @@ export default function OwnedParkTable() {
               <TableCell>{row.lease_rate_per_day ?? ''}</TableCell>
               <TableCell>{fmtDate(row.lease_start)}</TableCell>
               <TableCell>{fmtDate(row.lease_end)}</TableCell>
-              <TableCell>
-                <Chip
-                  size="small"
-                  label={row.is_owned ? 'Активен' : 'Не активен'}
-                  color={row.is_owned ? 'success' : 'default'}
-                  variant={row.is_owned ? 'filled' : 'outlined'}
-                />
-              </TableCell>
               <TableCell align="right">
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => handleSoftRemove(row)}
-                    disabled={!row.is_owned}
-                  >
+                  <Button size="small" onClick={() => handleHistory(row)}>
+                    История
+                  </Button>
+                  <Button size="small" variant="outlined" onClick={() => handleSoftRemove(row)}>
                     Снять
                   </Button>
-                  <Button
-                    size="small"
-                    color="error"
-                    onClick={() => handleHardDelete(row)}
-                  >
+                  <Button size="small" color="error" onClick={() => handleHardDelete(row)}>
                     Удалить
                   </Button>
                 </Box>
@@ -158,6 +138,12 @@ export default function OwnedParkTable() {
         open={showAdd}
         onClose={() => setShowAdd(false)}
         onSaved={() => { setShowAdd(false); loadData() }}
+      />
+
+      <OwnedParkHistory
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        wagon={selectedWagon}
       />
     </>
   )

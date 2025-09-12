@@ -38,7 +38,7 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
       // список арендодателей из counterparties (type='Арендодатель')
       const { data, error } = await supabase
         .from('counterparties')
-        .select('id, name_short, name')
+        .select('id, name_short')
         .eq('type', 'Арендодатель')
         .order('name_short', { ascending: true })
 

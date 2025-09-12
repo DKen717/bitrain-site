@@ -15,12 +15,14 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
   const [leaseRatePerDay, setLeaseRatePerDay] = useState('')
   const [notes, setNotes] = useState('')
 
+  const [companyId, setCompanyId] = useState('')
   const [lessorOptions, setLessorOptions] = useState([]) // [{id,label}]
+  const [initDone, setInitDone] = useState(false)
 
-  // как в арендаторах: 8-значные номера через Enter/запятую
+  // 8-значные номера (через Enter/запятую) — как в арендаторах
   const validWagons = useMemo(() => {
     return wagonList
-      .split(/[\n,]+/)
+      .split(/[\n,]+/)      // перенос строки или запятая
       .map(w => w.trim())
       .filter(w => /^[0-9]{8}$/.test(w))
   }, [wagonList])
@@ -32,10 +34,29 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
       .filter(w => w && !/^[0-9]{8}$/.test(w))
   }, [wagonList])
 
+  // аккуратно достаем company_id как в твоём паттерне, с фолбэком на getUser
+  const getCompanyIdFromAuth = async () => {
+    const session = await supabase.auth.getSession()
+    let cid = session?.data?.session?.user?.user_metadata?.company_id
+      ?? session?.data?.session?.user?.user_metadata?.companyId
+    if (!cid) {
+      const user = await supabase.auth.getUser()
+      cid = user?.data?.user?.user_metadata?.company_id
+        ?? user?.data?.user?.user_metadata?.companyId
+    }
+    return cid || ''
+  }
+
   useEffect(() => {
     if (!open) return
     ;(async () => {
-      // список арендодателей из counterparties (type='Арендодатель')
+      setInitDone(false)
+
+      // 1) company_id из auth (session / user)
+      const cid = await getCompanyIdFromAuth()
+      setCompanyId(cid)
+
+      // 2) арендодатели (только нужные поля)
       const { data, error } = await supabase
         .from('counterparties')
         .select('id, name_short')
@@ -43,13 +64,13 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
         .order('name_short', { ascending: true })
 
       if (!error && Array.isArray(data)) {
-        setLessorOptions(
-          data.map(r => ({ id: r.id, label: r.name_short || r.name || '(без названия)' }))
-        )
+        setLessorOptions(data.map(r => ({ id: r.id, label: r.name_short || '(без названия)' })))
       } else {
+        console.error('counterparties load error:', error)
         setLessorOptions([])
-        if (error) console.error('counterparties load error:', error)
       }
+
+      setInitDone(true)
     })()
   }, [open])
 
@@ -59,12 +80,13 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
       return
     }
 
-    // Точно такой же способ, как у тебя в коде аренды:
-    const user = await supabase.auth.getUser()
-    const session = await supabase.auth.getSession()
-    const companyId = session.data.session.user.user_metadata?.company_id
-
-    if (!companyId) {
+    // если по какой-то причине companyId не успел подтянуться — попробуем ещё раз тут
+    let cid = companyId
+    if (!cid) {
+      cid = await getCompanyIdFromAuth()
+      setCompanyId(cid)
+    }
+    if (!cid) {
       alert('company_id не найден в session.user.user_metadata.company_id')
       return
     }
@@ -72,7 +94,7 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
     const lessorName = lessorOptions.find(l => l.id === lessorId)?.label || null
 
     const records = validWagons.map(wagon => ({
-      owner_company_id: companyId,
+      owner_company_id: cid,
       wagon_number: Number(wagon),
       lessor_company_id: lessorId,
       lessor_name: lessorName,
@@ -81,8 +103,7 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
       lease_start: leaseStart || null,
       lease_end: leaseEnd || null,
       notes: notes || null,
-      is_owned: true,
-      created_by: user.data.user.id, // опционально; у тебя в таблице есть default auth.uid()
+      is_owned: true
     }))
 
     const { error } = await supabase
@@ -97,7 +118,7 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
     onClose()
     onSaved && onSaved()
 
-    // очистка формы (арендодателя оставляем выбранным)
+    // очистить форму (арендодателя оставим выбранным)
     setWagonList('')
     setDocNumber('')
     setLeaseRatePerDay('')
@@ -137,6 +158,7 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
           margin="dense"
           value={lessorId}
           onChange={e => setLessorId(e.target.value)}
+          helperText={!lessorOptions.length ? 'Нет записей в counterparties с type=Арендодатель' : ''}
         >
           {lessorOptions.map(opt => (
             <MenuItem key={opt.id} value={opt.id}>{opt.label}</MenuItem>
@@ -191,7 +213,9 @@ export default function OwnedParkAdd({ open, onClose, onSaved }) {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Отмена</Button>
-        <Button variant="contained" onClick={handleSave}>Сохранить</Button>
+        <Button variant="contained" onClick={handleSave} disabled={!initDone}>
+          Сохранить
+        </Button>
       </DialogActions>
     </Dialog>
   )

@@ -57,7 +57,7 @@ export default function ExcludeDialog({ open, onClose, onSaved }) {
       // 2) вставить новую запись-«исключение» (не активная, без арендатора)
       const rec = {
         wagon_number: num,
-        name_arendator: null,
+        name_arendator: 'Без арендатора',
         lease_start: excludeDate,   // ← Дата исключения "С"
         lease_end: null,            // ← больше не используем здесь
         lease_rate_per_day: null,

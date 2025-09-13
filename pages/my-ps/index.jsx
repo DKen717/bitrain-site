@@ -2,11 +2,13 @@ import Link from 'next/link'
 import AppLayout from '../../components/AppLayout'
 import { Container, Grid, Card, CardActionArea, CardContent, Typography } from '@mui/material'
 
+
+
 export default function MyPsIndex() {
   return (
     <AppLayout>
       <Container sx={{ py: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
           Мой ПС
         </Typography>
         <Typography variant="body2" sx={{ mb: 2 }}>

@@ -7,7 +7,6 @@ import { Container, Grid, Card, CardActionArea, CardContent, Typography } from '
 export default function MyPsIndex() {
   return (
     <AppLayout>
-     // <Container sx={{ py: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
           Мой ПС
         </Typography>

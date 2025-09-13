@@ -90,34 +90,38 @@ export default function RentedParkTable() {
 
   const handleHistory = (row) => { setSelectedWagon(row); setShowHistory(true) }
 
-  const handleDelete = async (row) => {
-    if (!window.confirm(`Удалить запись по вагону ${row.wagon_number}?`)) return
-    const { error } = await supabase
-      .from('Arendatori')
-      .update({ is_active: false, is_deleted: true })
-      .eq('id', row.id)
-    if (error) alert('Ошибка при удалении: ' + error.message)
-    else loadData()
-  }
-
   return (
     <>
-      {/* Панель действий и фильтров */}
-      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
+      {/* Верхняя панель действий */}
+      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mb: 1 }}>
         <Button variant="contained" onClick={() => setShowAddDialog(true)}>
           Добавить вагоны
         </Button>
-        <Button variant="outlined" onClick={() => setShowExcludeDialog(true)}>
+        <Button variant="contained" onClick={() => setShowExcludeDialog(true)}>
           Исключить вагоны
         </Button>
 
+        <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+          <Button variant="outlined" onClick={loadData}>Обновить</Button>
+          <Typography
+            variant="subtitle1"
+            color="text.primary"
+            sx={{ alignSelf: 'center', fontWeight: 600 }}
+          >
+            {loading ? 'Загрузка…' : `Показано: ${filtered.length}`}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Фильтры под кнопками */}
+      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
         <Autocomplete
           multiple
           options={wagonOptions}
           value={filters.wagons}
           onChange={(e, v) => setFilters(prev => ({ ...prev, wagons: v }))}
           renderInput={(params) => <TextField {...params} label="Номера вагонов" size="small" />}
-          sx={{ width: 280, ml: 2 }}
+          sx={{ width: 280 }}
         />
         <Autocomplete
           multiple
@@ -136,13 +140,6 @@ export default function RentedParkTable() {
           <MenuItem value="inactive">Исключённые</MenuItem>
           <MenuItem value="all">Все</MenuItem>
         </TextField>
-
-        <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
-          <Button variant="outlined" onClick={loadData}>Обновить</Button>
-          <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
-            {loading ? 'Загрузка…' : `Показано: ${filtered.length}`}
-          </Typography>
-        </Box>
       </Box>
 
       {/* Таблица */}
@@ -180,7 +177,7 @@ export default function RentedParkTable() {
               </TableCell>
               <TableCell>
                 <Button size="small" onClick={() => handleHistory(w)}>История</Button>
-                <Button size="small" color="error" onClick={() => handleDelete(w)}>Удалить</Button>
+                {/* Кнопка удаления убрана по запросу */}
               </TableCell>
             </TableRow>
           ))}

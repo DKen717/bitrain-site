@@ -29,16 +29,44 @@ export default function RentedParkHistory({ open, onClose, wagon }) {
   const loadHistory = async () => {
     const cid = await resolveCompanyIdByUserId()
     if (!cid) return
+
     const { data, error } = await supabase
       .from('Arendatori')
       .select('*')
       .eq('company_id', cid)
       .eq('wagon_number', wagon.wagon_number)
       .eq('is_deleted', false)
-      .order('data_dobavlen', { ascending: true })
+      .order('lease_start', { ascending: false, nullsFirst: false })
+      .order('data_dobavlen', { ascending: false })
 
-    if (error) console.error(error)
-    else setHistory(data || [])
+    if (error) {
+      console.error(error)
+      setHistory([])
+      return
+    }
+
+    const arr = data || []
+
+    // --- подтягиваем ФИО из users_custom по created_by ---
+    const userIds = [...new Set(arr.map(r => r.created_by).filter(Boolean))]
+    let nameById = {}
+    if (userIds.length) {
+      const { data: users, error: uErr } = await supabase
+        .from('users_custom')
+        .select('user_id, full_name')
+        .in('user_id', userIds)
+
+      if (!uErr && users) {
+        nameById = Object.fromEntries(users.map(u => [u.user_id, u.full_name || '']))
+      }
+    }
+
+    const enriched = arr.map(r => ({
+      ...r,
+      created_by_name: nameById[r.created_by] || r.created_by || ''
+    }))
+
+    setHistory(enriched)
   }
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('ru-RU') : ''
@@ -85,7 +113,8 @@ export default function RentedParkHistory({ open, onClose, wagon }) {
                     variant={row.is_active ? 'filled' : 'outlined'}
                   />
                 </TableCell>
-                <TableCell>{row.created_by || ''}</TableCell>
+                {/* выводим ФИО из users_custom */}
+                <TableCell>{row.created_by_name}</TableCell>
                 <TableCell>{formatDate(row.data_dobavlen)}</TableCell>
               </TableRow>
             ))}

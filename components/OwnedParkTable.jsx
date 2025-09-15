@@ -8,7 +8,7 @@ import {
 import { supabase } from '../src/supabaseClient'
 import OwnedParkAdd from './OwnedParkAdd'
 import OwnedParkHistory from './OwnedParkHistory'
-import OwnedParkExclude from './OwnedParkExclude' // новый диалог
+import OwnedParkExclude from './OwnedParkExclude' // диалог массового исключения
 
 export default function OwnedParkTable() {
   const [allRows, setAllRows] = useState([])
@@ -19,11 +19,12 @@ export default function OwnedParkTable() {
   const [showHistory, setShowHistory] = useState(false)
   const [selectedWagon, setSelectedWagon] = useState(null)
   const [companyId, setCompanyId] = useState('')
+  const [supportsCreatedAt, setSupportsCreatedAt] = useState(true)
 
   // Фильтры
-  const [filterNumber, setFilterNumber] = useState('')              // "12345" или "12345, 23456 ..."
-  const [filterLessor, setFilterLessor] = useState('')              // exact match по названию
-  const [filterStatus, setFilterStatus] = useState('active')        // 'all' | 'active' | 'inactive'
+  const [filterNumber, setFilterNumber] = useState('')       // "12345" или "12345, 23456"
+  const [filterLessor, setFilterLessor] = useState('')       // exact match
+  const [filterStatus, setFilterStatus] = useState('active') // 'all' | 'active' | 'inactive'
 
   const resolveCompanyIdByUserId = async () => {
     const { data: u } = await supabase.auth.getUser()
@@ -43,7 +44,8 @@ export default function OwnedParkTable() {
       setCompanyId(cid)
       if (!cid) { setAllRows([]); setRows([]); return }
 
-      const { data, error } = await supabase
+      // 1-я попытка — с created_at (если есть)
+      let q = supabase
         .from('my_wagons')
         .select(`
           id,
@@ -55,21 +57,37 @@ export default function OwnedParkTable() {
           lease_start,
           lease_end,
           is_owned,
-          is_active,
           created_at
         `)
         .eq('owner_company_id', cid)
-        .eq('is_owned', true) // показываем только собственные
         .order('wagon_number', { ascending: true })
 
-      if (error) throw error
-      const normalized = (data || []).map(r => ({
-        ...r,
-        // Поддержка старых записей без is_active — считаем активными
-        is_active: typeof r.is_active === 'boolean' ? r.is_active : true
-      }))
+      let { data, error } = await q
+      if (error) {
+        // fallback без created_at
+        setSupportsCreatedAt(false)
+        const { data: data2, error: err2 } = await supabase
+          .from('my_wagons')
+          .select(`
+            id,
+            owner_company_id,
+            wagon_number,
+            lessor_name,
+            doc_number,
+            lease_rate_per_day,
+            lease_start,
+            lease_end,
+            is_owned
+          `)
+          .eq('owner_company_id', cid)
+          .order('wagon_number', { ascending: true })
+        if (err2) throw err2
+        data = data2
+      } else {
+        setSupportsCreatedAt(true)
+      }
 
-      setAllRows(normalized)
+      setAllRows(data || [])
     } catch (e) {
       console.error('loadData error:', e)
     } finally {
@@ -79,47 +97,41 @@ export default function OwnedParkTable() {
 
   useEffect(() => { loadData() }, [])
 
-  // Уникальные арендодатели для фильтра
   const lessorOptions = useMemo(() => {
     const s = new Set()
     allRows.forEach(r => { if (r.lessor_name) s.add(r.lessor_name) })
     return Array.from(s).sort()
   }, [allRows])
 
-  // Применение фильтров (клиент-сайд)
+  // Применение фильтров клиент-сайд
   useEffect(() => {
-    const applyFilters = () => {
-      let filtered = [...allRows]
+    let filtered = [...allRows]
 
-      // Фильтр по номеру: список номеров или подстрока
-      const raw = filterNumber.trim()
-      if (raw) {
-        if (raw.includes(',') || raw.includes(' ')) {
-          const nums = raw.split(/[\s,]+/).map(s => s.trim()).filter(Boolean)
-          const setNums = new Set(nums)
-          filtered = filtered.filter(r => setNums.has(String(r.wagon_number)))
-        } else {
-          filtered = filtered.filter(r =>
-            String(r.wagon_number).includes(raw)
-          )
-        }
+    // Номер(а) вагона
+    const raw = filterNumber.trim()
+    if (raw) {
+      if (raw.includes(',') || raw.includes(' ')) {
+        const nums = raw.split(/[\s,]+/).map(s => s.trim()).filter(Boolean)
+        const setNums = new Set(nums)
+        filtered = filtered.filter(r => setNums.has(String(r.wagon_number)))
+      } else {
+        filtered = filtered.filter(r => String(r.wagon_number).includes(raw))
       }
-
-      // Фильтр по арендодателю (exact)
-      if (filterLessor) {
-        filtered = filtered.filter(r => (r.lessor_name || '') === filterLessor)
-      }
-
-      // Фильтр по статусу
-      if (filterStatus === 'active') {
-        filtered = filtered.filter(r => r.is_active === true)
-      } else if (filterStatus === 'inactive') {
-        filtered = filtered.filter(r => r.is_active === false)
-      }
-
-      setRows(filtered)
     }
-    applyFilters()
+
+    // Арендодатель (точное совпадение)
+    if (filterLessor) {
+      filtered = filtered.filter(r => (r.lessor_name || '') === filterLessor)
+    }
+
+    // Статус по is_owned
+    if (filterStatus === 'active') {
+      filtered = filtered.filter(r => r.is_owned === true)
+    } else if (filterStatus === 'inactive') {
+      filtered = filtered.filter(r => r.is_owned === false)
+    }
+
+    setRows(filtered)
   }, [allRows, filterNumber, filterLessor, filterStatus])
 
   const fmtDate = (d) => {
@@ -130,27 +142,26 @@ export default function OwnedParkTable() {
   }
 
   const fmtDateTime = (d) => {
-    if (!d) return ''
+    if (!d) return '-'
     const dt = new Date(d)
-    if (Number.isNaN(dt.getTime())) return ''
+    if (Number.isNaN(dt.getTime())) return '-'
     const dd = `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}.${dt.getFullYear()}`
     const tt = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
     return `${dd} ${tt}`
   }
 
-  // Переключение статуса Активный/Неактивный
-  const handleToggleActive = async (row) => {
-    const next = !row.is_active
+  // Переключатель статуса: меняем is_owned (true/false)
+  const handleToggleOwned = async (row) => {
+    const next = !row.is_owned
     const { error } = await supabase
       .from('my_wagons')
-      .update({ is_active: next })
+      .update({ is_owned: next })
       .eq('id', row.id)
-
     if (error) {
       alert('Не удалось изменить статус: ' + error.message)
       return
     }
-    setAllRows(prev => prev.map(r => r.id === row.id ? { ...r, is_active: next } : r))
+    setAllRows(prev => prev.map(r => r.id === row.id ? { ...r, is_owned: next } : r))
   }
 
   const handleHistory = (row) => {
@@ -159,7 +170,7 @@ export default function OwnedParkTable() {
   }
 
   const activeShownCount = useMemo(
-    () => rows.filter(r => r.is_active).length,
+    () => rows.filter(r => r.is_owned).length,
     [rows]
   )
 
@@ -257,19 +268,19 @@ export default function OwnedParkTable() {
               <TableCell>{row.lease_rate_per_day ?? ''}</TableCell>
               <TableCell>{fmtDate(row.lease_start)}</TableCell>
               <TableCell>{fmtDate(row.lease_end)}</TableCell>
-              <TableCell>{fmtDateTime(row.created_at)}</TableCell>
+              <TableCell>{supportsCreatedAt ? fmtDateTime(row.created_at) : '-'}</TableCell>
               <TableCell>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip
                     size="small"
-                    label={row.is_active ? 'Активный' : 'Неактивный'}
-                    color={row.is_active ? 'success' : 'default'}
+                    label={row.is_owned ? 'Активный' : 'Неактивный'}
+                    color={row.is_owned ? 'success' : 'default'}
                     sx={{ fontWeight: 700 }}
                   />
                   <Switch
-                    checked={!!row.is_active}
-                    onChange={() => handleToggleActive(row)}
-                    inputProps={{ 'aria-label': 'Переключить активность' }}
+                    checked={!!row.is_owned}
+                    onChange={() => handleToggleOwned(row)}
+                    inputProps={{ 'aria-label': 'Переключить активность (is_owned)' }}
                   />
                 </Stack>
               </TableCell>
@@ -277,7 +288,7 @@ export default function OwnedParkTable() {
                 <Button size="small" onClick={() => handleHistory(row)}>
                   История
                 </Button>
-                {/* Убраны "Снять" и "Удалить" по ТЗ */}
+                {/* "Снять" и "Удалить" удалены по ТЗ */}
               </TableCell>
             </TableRow>
           ))}
